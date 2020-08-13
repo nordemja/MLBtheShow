@@ -31,6 +31,7 @@ def getOrders(csvFileArg):
         packfile = csv.DictWriter(csv_file, fieldnames=['Order ID', 'Player Name', 'Order Type', 'Stubs', 'Date'])
         packfile.writeheader()
 
+        orderID = 1
         #loop through each page
         for x in range(1, 10):
             params = (('page', str(x) + '^'), ('', ''), )
@@ -40,7 +41,6 @@ def getOrders(csvFileArg):
             table = soup.find('tbody')
             results = table.find_all('tr')
 
-            orderID = 1
             #loop through each order
             for each in results:
 
