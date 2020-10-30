@@ -81,6 +81,7 @@ lastNames = []
 bestBuyList = []
 for each in range (0,10):
     topTenDict = filteredProfitList[each]
+    print(topTenDict)
     bestBuyList.append(topTenDict['best_buy_price'])
     lastNames.append(topTenDict['name'].split()[-1])
 
@@ -98,11 +99,12 @@ for each in lastNames:
         requestName = each.contents[5].text.strip()
         amount = each.contents[11].text.strip()
 
-        if int(amount) == bestBuyList[i]:
+        if bestBuyList[i] in range(int(amount)-10,int(amount)+10):
+            print(requestName)
             link = each.find('a')
             formatted_url = 'https://theshownation.com' + link['href'].lstrip().rstrip().strip('fave')
             getBuyOrder(testOrderPage)
-            time.sleep(27)
+            time.sleep(25)
 
     i += 1
 
