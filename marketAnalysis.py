@@ -31,9 +31,13 @@ def getOrders(csvFileArg):
         packfile = csv.DictWriter(csv_file, fieldnames=['Order ID', 'Player Name', 'Order Type', 'Stubs', 'Date'])
         packfile.writeheader()
 
+        totalAmnt = 0
+        totalAmntB = 0
         orderID = 1
         #loop through each page
-        for x in range(1, 10):
+        for x in range(1, 3):
+            print(x)
+            
             params = (('page', str(x) + '^'), ('', ''), )
             r = requests.get("https://theshownation.com/mlb20/orders/completed_orders", headers=headers, params = params)
 
@@ -66,6 +70,11 @@ def getOrders(csvFileArg):
                 amount = amount.replace(',', "")
                 amount = int(amount)
 
+                if purchaseType == "Sold":
+                    totalAmnt += amount
+                elif purchaseType == "Bought":
+                    totalAmntB += amount
+
 
                 #find dates and remove times
                 date = each.contents[5].text
@@ -76,6 +85,8 @@ def getOrders(csvFileArg):
                 packfile.writerow({'Order ID': orderID, 'Player Name': playerName, 'Order Type': purchaseType, 'Stubs': amount, 'Date': subDate})
 
                 orderID += 1
+    print("Total Amount Sold: " + str(totalAmnt))
+    print("Total Amount Bought: " + str(totalAmntB))
                         
 
 getOrders('OrderHistory.csv')
