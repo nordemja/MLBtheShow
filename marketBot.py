@@ -1,9 +1,19 @@
 import requests
 from bs4 import BeautifulSoup
+import time
 
 headers = {
-
-'''HEADER INFO GOES HERE'''
+    'authority': 'theshownation.com',
+    'accept': 'text/html, application/xhtml+xml',
+    'turbolinks-referrer': 'https://theshownation.com/mlb20/dashboard',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36',
+    'sec-fetch-site': 'same-origin',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-dest': 'empty',
+    'referer': 'https://theshownation.com/mlb20/dashboard',
+    'accept-language': 'en-US,en;q=0.9',
+    'cookie': '_ga=GA1.2.231888817.1603072001; tsn_token=eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MTM2MDczLCJ1c2VybmFtZSI6InRocm93YXdheXBpdGNoIiwicGljdHVyZSI6Imh0dHBzOi8vc3RhdGljLXJlc291cmNlLm5wLmNvbW11bml0eS5wbGF5c3RhdGlvbi5uZXQvYXZhdGFyL2RlZmF1bHQvRGVmYXVsdEF2YXRhci5wbmciLCJncm91cHMiOltdfQ.y2fTV0S5wEFoWiVL0aFMHXkpIOyZce4RA9Lk0lOJ_R8; _gid=GA1.2.1505861429.1603719270; _tsn_session=e738e97a98bc96d657844d9e8579f4be; _gat=1',
+    'if-none-match': 'W/^\\^c76f73cc4ef15f00301bb836625a677b^\\^',
 }
 
 def getStubsAmount():
@@ -22,14 +32,13 @@ def getAuthToken(playerURL):
         return authToken
 
 def getBuyOrder(playerURL):
-    formData = {'authenticity_token': getAuthToken(playerURL), 'price': '101', 'button': ''}
+    formData = {'authenticity_token': getAuthToken(playerURL), 'price': '100', 'button': ''}
     sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= headers)
     print(sendPost)
     print(getStubsAmount())
 
 
-#page = 'https://theshownation.com/mlb20/items/fffffe98d0963d27015c198262d97221'
-#getBuyOrder(page)
+testOrderPage = 'https://theshownation.com/mlb20/items/cfbe0f33f88e0a053237ad6205530602'
 
 
 #get initial API results to get total number of pages and set variable to total pages
@@ -55,11 +64,10 @@ filteredProfitList = []
 for each in cumalitiveListing:
 
     #set criteria, calculate profit, and add to filteredProfitList
-    if each['best_buy_price'] < (stubsAmount * .25) and each['best_sell_price'] * .9 > 50 and each['best_buy_price'] != 0:
+    if each['best_buy_price'] < (stubsAmount * .1) and each['best_sell_price'] * .9 > 50 and each['best_buy_price'] != 0:
         profit = (int(each['best_sell_price'] * .9 - each['best_buy_price']))
-        if profit < 900:
-            each['profit'] = profit
-            filteredProfitList.append(each)
+        each['profit'] = profit
+        filteredProfitList.append(each)
 
 #clear initial list to save memory
 cumalitiveListing.clear()
@@ -73,10 +81,8 @@ lastNames = []
 bestBuyList = []
 for each in range (0,10):
     topTenDict = filteredProfitList[each]
-    print(topTenDict)
     bestBuyList.append(topTenDict['best_buy_price'])
     lastNames.append(topTenDict['name'].split()[-1])
-
 
 filteredProfitList.clear()
 
@@ -91,15 +97,12 @@ for each in lastNames:
     for each in results:
         requestName = each.contents[5].text.strip()
         amount = each.contents[11].text.strip()
-        if int(amount) == bestBuyList[i]:
-            print(requestName)
-            print(amount)
 
+        if int(amount) == bestBuyList[i]:
             link = each.find('a')
             formatted_url = 'https://theshownation.com' + link['href'].lstrip().rstrip().strip('fave')
-            print(formatted_url)
-            
-            print(getAuthToken(formatted_url))
+            getBuyOrder(testOrderPage)
+            time.sleep(27)
 
     i += 1
 
