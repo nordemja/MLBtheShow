@@ -109,3 +109,16 @@ for each in lastNames:
     i += 1
 
 lastNames.clear()
+
+#pseudo code for searching by series
+'''
+x = requests.get('https://theshownation.com/mlb20/community_market?display_position=&amp;max_best_buy_price=&amp;max_best_sell_price=&amp;max_rank=&amp;min_best_buy_price=&amp;min_best_sell_price=&amp;min_rank=&amp;name=&amp;player_type_id=&amp;rarity_id=&amp;series_id=10022&amp;team_id=&amp;type=mlb_card')
+for each in results:
+        requestName = each.contents[5].text.strip()
+        print(requestName)
+        link = each.find('a')
+        formatted_url = 'https://theshownation.com' + link['href'].lstrip().rstrip().strip('fave')
+        getBuyOrder(formatted_url)
+        break
+    break
+'''
