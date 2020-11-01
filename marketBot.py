@@ -31,16 +31,52 @@ def getAuthToken(playerURL):
         authToken = buyForm.find('input').get('value')
         return authToken
 
-def getBuyOrder(playerURL):
-    formData = {'authenticity_token': getAuthToken(playerURL), 'price': '100', 'button': ''}
+def getBuyOrder(playerURL, price):
+    formData = {'authenticity_token': getAuthToken(playerURL), 'price': price, 'button': ''}
     sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= headers)
     print(sendPost)
     print(getStubsAmount())
 
 
-testOrderPage = 'https://theshownation.com/mlb20/items/cfbe0f33f88e0a053237ad6205530602'
+cardSeries = requests.get('https://theshownation.com/mlb20/community_market?page=2&display_position=&amp=&max_best_buy_price=&max_best_sell_price=&max_rank=&min_best_buy_price=&min_best_sell_price=&min_rank=&name=&player_type_id=&rarity_id=&series_id=10022&team_id=&type=mlb_card', headers = headers)
 
+soup = BeautifulSoup(cardSeries.text, 'html.parser')
+totalPagesFound = soup.find('h3').text.strip()[-1]
+totalPagesFound = int(totalPagesFound)
 
+listings = []
+for each in range(1, totalPagesFound+1):
+    searchReults = requests.get('https://theshownation.com/mlb20/community_market?page='+str(each)+'&display_position=&amp=&max_best_buy_price=&max_best_sell_price=&max_rank=&min_best_buy_price=&min_best_sell_price=&min_rank=&name=&player_type_id=&rarity_id=&series_id=10022&team_id=&type=mlb_card', headers = headers)
+    
+    soup = BeautifulSoup(searchReults.text, 'html.parser')
+    table = soup.find('tbody')
+    results = table.find_all('tr')
+
+    for each in results:
+        listingsDict = {}
+        requestName = each.contents[5].text.strip()
+        buyAmount = int(each.contents[11].text.strip()) +1
+        sellAmount = int(each.contents[9].text.strip()) -1
+        profit = int((sellAmount - 1) * .9) - buyAmount +1
+
+        link = each.find('a')
+        formattedURL = 'https://theshownation.com' + link['href'].lstrip().rstrip().strip('fave')
+        listingsDict['player name'] = requestName
+        listingsDict['buy amount'] = buyAmount
+        listingsDict['sell amount'] = sellAmount
+        listingsDict['profit'] = profit
+        listingsDict['URL'] = formattedURL
+        listings.append(listingsDict)
+
+listings = sorted(listings, key = lambda i: i['profit'])
+listings.reverse()
+
+for each in range(0,10):
+    print(listings[each]['player name'])
+    getBuyOrder(listings[each]['URL'], listings[each]['buy amount'])
+    time.sleep(25)
+
+'''
 #get initial API results to get total number of pages and set variable to total pages
 page = requests.get('https://theshownation.com/mlb20/apis/listings.json?type=mlb_card&page=1')
 listingsDict = page.json()
@@ -110,9 +146,10 @@ for each in lastNames:
 
 lastNames.clear()
 
-#pseudo code for searching by series
+'''
 '''
 x = requests.get('https://theshownation.com/mlb20/community_market?display_position=&amp;max_best_buy_price=&amp;max_best_sell_price=&amp;max_rank=&amp;min_best_buy_price=&amp;min_best_sell_price=&amp;min_rank=&amp;name=&amp;player_type_id=&amp;rarity_id=&amp;series_id=10022&amp;team_id=&amp;type=mlb_card')
+
 for each in results:
         requestName = each.contents[5].text.strip()
         print(requestName)
