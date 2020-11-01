@@ -3,17 +3,7 @@ from bs4 import BeautifulSoup
 import time
 
 headers = {
-    'authority': 'theshownation.com',
-    'accept': 'text/html, application/xhtml+xml',
-    'turbolinks-referrer': 'https://theshownation.com/mlb20/dashboard',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36',
-    'sec-fetch-site': 'same-origin',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-dest': 'empty',
-    'referer': 'https://theshownation.com/mlb20/dashboard',
-    'accept-language': 'en-US,en;q=0.9',
-    'cookie': '_ga=GA1.2.231888817.1603072001; tsn_token=eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MTM2MDczLCJ1c2VybmFtZSI6InRocm93YXdheXBpdGNoIiwicGljdHVyZSI6Imh0dHBzOi8vc3RhdGljLXJlc291cmNlLm5wLmNvbW11bml0eS5wbGF5c3RhdGlvbi5uZXQvYXZhdGFyL2RlZmF1bHQvRGVmYXVsdEF2YXRhci5wbmciLCJncm91cHMiOltdfQ.y2fTV0S5wEFoWiVL0aFMHXkpIOyZce4RA9Lk0lOJ_R8; _gid=GA1.2.1505861429.1603719270; _tsn_session=e738e97a98bc96d657844d9e8579f4be; _gat=1',
-    'if-none-match': 'W/^\\^c76f73cc4ef15f00301bb836625a677b^\\^',
+''' HEADER INFO TO AUTHENTICATE INTO ACCOUNT GOES HERE -- NOT INCLUDED FOR SECURITY REASONS'''
 }
 
 def getStubsAmount():
