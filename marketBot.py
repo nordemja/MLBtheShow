@@ -22,6 +22,16 @@ def getStubsAmount():
     stubsAmount = soup.find('div', {'class': 'well stubs'}).text.strip().replace('Stubs Balance\n\n', '').replace(',','')
     return int(stubsAmount)
 
+def getBuyAmount(playerURL):
+    x = requests.get(playerURL, headers= headers)
+    soup = BeautifulSoup(x.text, 'html.parser')
+    table = soup.find('div', {'class': 'section-open-order-secondary'})
+    table = table.find('tbody')
+    buyAmount = table.find('tr')
+    buyAmount = buyAmount.find_all('td')
+    buyAmount = int(buyAmount[1].text.strip().replace(',', ''))
+    return buyAmount + 25
+
 def getAuthToken(playerURL):
         r = requests.get(playerURL, headers= headers)
         pagetext = r.text
@@ -31,8 +41,8 @@ def getAuthToken(playerURL):
         authToken = buyForm.find('input').get('value')
         return authToken
 
-def getBuyOrder(playerURL, price):
-    formData = {'authenticity_token': getAuthToken(playerURL), 'price': price, 'button': ''}
+def placeBuyOrder(playerURL):
+    formData = {'authenticity_token': getAuthToken(playerURL), 'price': getBuyAmount(playerURL), 'button': ''}
     sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= headers)
     print(sendPost)
     print(getStubsAmount())
@@ -72,8 +82,8 @@ listings = sorted(listings, key = lambda i: i['profit'])
 listings.reverse()
 
 for each in range(0,10):
-    print(listings[each]['player name'])
-    getBuyOrder(listings[each]['URL'], listings[each]['buy amount'])
+    print(listings[each])
+    placeBuyOrder(listings[each]['URL'])
     time.sleep(25)
 
 '''
@@ -139,7 +149,7 @@ for each in lastNames:
             print(requestName)
             link = each.find('a')
             formatted_url = 'https://theshownation.com' + link['href'].lstrip().rstrip().strip('fave')
-            getBuyOrder(testOrderPage)
+            placeBuyOrder(testOrderPage)
             time.sleep(25)
 
     i += 1
@@ -155,7 +165,7 @@ for each in results:
         print(requestName)
         link = each.find('a')
         formatted_url = 'https://theshownation.com' + link['href'].lstrip().rstrip().strip('fave')
-        getBuyOrder(formatted_url)
+        placeBuyOrder(formatted_url)
         break
     break
 '''
