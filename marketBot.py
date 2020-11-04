@@ -5,7 +5,8 @@ import time
 
 #header information to authenticate into account
 headers = {
-    ''' HEADER INFO GOES HERE --- NOT INCLUDED FOR SECURITY REASONS ''' 
+
+''' HEADER INFO TO AUTHENTICATE IN GOES HERE --- NOT INCLUDED FOR SECURITY REASONS '''
 }
 
 def getStubsAmount():
@@ -22,7 +23,7 @@ def getBuyAmount(playerURL):
     buyAmount = table.find('tr')
     buyAmount = buyAmount.find_all('td')
     buyAmount = int(buyAmount[1].text.strip().replace(',', ''))
-    return buyAmount + 25
+    return buyAmount + 100
 
 def getSellAmount(playerURL):
     x = requests.get(playerURL, headers= headers)
@@ -32,7 +33,7 @@ def getSellAmount(playerURL):
     buyAmount = table.find('tr')
     buyAmount = buyAmount.find_all('td')
     buyAmount = int(buyAmount[1].text.strip().replace(',', ''))
-    return buyAmount - 25
+    return buyAmount - 150
 
 def getBuyAuthToken(playerURL):
     pageRequest = requests.get(playerURL, headers= headers)
@@ -58,6 +59,85 @@ def placeSellOrder(playerURL):
     sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= headers)
     print(sendPost)
 
+def placeBuyOrdersForList(playerInfoDict):
+    print(playerInfoDict)
+    placeBuyOrder(playerInfoDict['URL'])
+    stubsAfter = getStubsAmount()
+    return stubsAfter
+
+def getTotalSellable(playerURL):
+    playerPage = requests.get(playerURL, headers= headers)
+    soup = BeautifulSoup(playerPage.text, 'html.parser')
+    totalSellable = soup.find('div', {'class': 'section-order-info-secondary'})
+    totalSellable = totalSellable.find('div', {'class': 'well'})
+    return int(totalSellable.text.strip()[-1])
+
+def loopThroughToBuyList(buyList, openSellList, buyOrdersOpen):
+    for each in buyList:
+
+        try:
+            if buyList[0]['player name'] in openSellList:
+                print(buyList[0]['player name'])
+                pass
+            else:
+                stubsBefore = getStubsAmount()
+                stubsAfterOrder = placeBuyOrdersForList(buyList[0])
+
+                while (stubsBefore == stubsAfterOrder):
+                    input("press button to continue: ")
+                    stubsBefore = getStubsAmount()
+                    stubsAfterOrder= placeBuyOrdersForList(buyList[0])
+
+                buyOrdersOpen += 1
+                statusCode = "proceed"
+                buyList.pop(0)
+                print(buyOrdersOpen)
+            
+                if buyOrdersOpen == 10:
+                    break
+
+        except AttributeError:
+            statusCode = 'failed'
+            #function(listings, openPlayerSellList)
+
+def getOpenBuyOrders():
+    openPlayerBuyList = []
+    try:
+        openOrdersPage = requests.get('https://theshownation.com/mlb20/orders/open_orders', headers= headers)
+        soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
+        openSellOrders = soup.find('tbody')
+        openPlayerSells = openSellOrders.find_all('tr')
+
+        for each in openPlayerSells:
+            #orderID = each.get('id').replace('sell-order-', '')
+            playerLink = each.find('a')
+            openPlayerBuyList.append(playerLink.text)
+    except AttributeError:
+        openPlayerBuyList 
+
+    return openPlayerBuyList
+
+
+def getOpenSellOrders():
+    openPlayerBuyList = []
+    try:
+        openOrdersPage = requests.get('https://theshownation.com/mlb20/orders/open_orders', headers= headers)
+        soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
+        openSellOrders = soup.find_all('tbody')[1]
+        openPlayerSells = openSellOrders.find_all('tr')
+
+        for each in openPlayerSells:
+            #orderID = each.get('id').replace('sell-order-', '')
+            playerLink = each.find('a')
+            openPlayerBuyList.append(playerLink.text)
+    except AttributeError:
+        openPlayerBuyList 
+
+    return openPlayerBuyList
+
+print(getOpenBuyOrders())   
+print(getOpenSellOrders())
+'''
 #get system time
 systemTime = datetime.now().strftime("%m/%d/%Y %I:%M%p")
 systemTime = datetime.strptime(systemTime, "%m/%d/%Y %I:%M%p")
@@ -104,24 +184,21 @@ for each in range(1, totalPagesFound+1):
 listings = sorted(listings, key = lambda i: i['profit'])
 listings.reverse()
 
-#place buy order for top 10 most profittable cards
-for each in range(0,10):
-    
-    print(listings[each])
-    stubsBefore = getStubsAmount()
-    placeBuyOrder(listings[each]['URL'])
-    stubsAfter= getStubsAmount()
-    print(stubsAfter)
-    if (stubsBefore == stubsAfter):
-        print(listings[each])
-        time.sleep(25)
-        stubsBefore = getStubsAmount()
-        placeBuyOrder(listings[each]['URL'])
-        stubsAfter= getStubsAmount()
-        print(stubsAfter)
-        
+#openPlayerSellList = getOpenSellOrders()
+#print(openPlayerSellList)
 
-#time.sleep(60)
+#place buy order for top 10 most profittable cards
+openPlayerSellList = []
+ordersPlaced = 0
+loopThroughToBuyList(listings, openPlayerSellList, ordersPlaced)
+#function(toBuyList, currentOpenSells)
+
+            
+        
+print('sleeping...')
+time.sleep(120)
+print('executing sell orders...')
+
 
 #get data from completed orders table
 completedPage = requests.get('https://theshownation.com/mlb20/orders/completed_orders', headers= headers)
@@ -135,16 +212,28 @@ for each in playerOrderInfo:
     requestName = each.contents[1].text.strip()
     timeCompleted = each.contents[5].text.strip().replace(' EDT', '').replace(' EST', '')
     timeCompleted = datetime.strptime(timeCompleted, "%m/%d/%Y %I:%M%p")
+    orderType = each.contents[3].text.strip().split()[0]
+
 
     #place sell order if bought after recorded systemTime
-    if (timeCompleted > systemTime):
+    if (timeCompleted >= systemTime and orderType == 'Bought'):
         print(requestName)
         print(timeCompleted)
         sellPlayerLink = each.find('a')
         sellPlayerLink = 'https://theshownation.com' + sellPlayerLink['href'].lstrip().rstrip()
+        sellableBefore = getTotalSellable(sellPlayerLink)
         placeSellOrder(sellPlayerLink)
+        sellableAfter = getTotalSellable(sellPlayerLink)
+        print(sellableAfter)
+        while sellableBefore == sellableAfter:
+            input("press button to continue: ")
+            print(requestName)
+            placeSellOrder(sellPlayerLink)
+            sellableAfter = getTotalSellable(sellPlayerLink)
+        ordersPlaced -= 1
+        print(ordersPlaced)
 
-'''
+
 openOrdersPage = requests.get('https://theshownation.com/mlb20/orders/open_orders', headers= headers)
 soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
 openSellOrders = soup.find('tbody')
@@ -154,9 +243,13 @@ for each in openPlayerSells:
 
     orderID = each.get('id').replace('sell-order-', '')
     playerLink = each.find('a')
+    openPlayerSellList.append(playerLink.text)
     playerLink = 'https://theshownation.com' + playerLink['href'].lstrip().rstrip()
     orderPrice = int(each.contents[5].text.strip().replace(',',''))
+'''
+'''
     currentSellPrice  = getSellAmount(playerLink)
+
 
     if (orderPrice > currentSellPrice):
 
