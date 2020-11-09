@@ -3,10 +3,17 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import time
 from playsound import playsound
+from selenium import webdriver
+
+browser = webdriver.Chrome() 
+browser.get('https://theshownation.com/mlb20/dashboard')
+
+
+cardSeriesLink = input('Enter Link of Card Criteria: ')
 
 #header information to authenticate into account
 headers = {
-    ''' HEADER INFORMATION GOES HERE --- NOT INCLUDED FOR SECURITY REASONS '''
+        ''' HEADER INFORMATION GOES HERE --- NOT INCLUDED FOR SECURITY REASONS '''
 }
 
 def getStubsAmount():
@@ -23,7 +30,7 @@ def getBuyAmount(playerURL):
     buyAmount = table.find('tr')
     buyAmount = buyAmount.find_all('td')
     buyAmount = int(buyAmount[1].text.strip().replace(',', ''))
-    return buyAmount + 100
+    return buyAmount
 
 def getSellAmount(playerURL):
     x = requests.get(playerURL, headers= headers)
@@ -33,7 +40,7 @@ def getSellAmount(playerURL):
     buyAmount = table.find('tr')
     buyAmount = buyAmount.find_all('td')
     buyAmount = int(buyAmount[1].text.strip().replace(',', ''))
-    return buyAmount - 150
+    return buyAmount
 
 def getBuyAuthToken(playerURL):
     pageRequest = requests.get(playerURL, headers= headers)
@@ -50,12 +57,12 @@ def getSellAuthToken(playerURL):
     return authToken
 
 def placeBuyOrder(playerURL):
-    formData = {'authenticity_token': getBuyAuthToken(playerURL), 'price': getBuyAmount(playerURL), 'button': ''}
+    formData = {'authenticity_token': getBuyAuthToken(playerURL), 'price': getBuyAmount(playerURL) + 500, 'button': ''}
     sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= headers)
     print(sendPost)
 
 def placeSellOrder(playerURL):
-    formData = {'authenticity_token': getSellAuthToken(playerURL), 'price': getSellAmount(playerURL), 'button': ''}
+    formData = {'authenticity_token': getSellAuthToken(playerURL), 'price': getSellAmount(playerURL) - 1000, 'button': ''}
     sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= headers)
     print(sendPost)
 
@@ -116,14 +123,16 @@ def getOpenSellOrdersList():
                     playerDict = {}
                     playerName = each.contents[3].text.strip()
                     postedPrice = each.contents[5].text.strip().replace(',','')
+                    orderID = each.get('id')
                     playerURL = each.find('a')
                     playerURL = 'https://theshownation.com' + playerURL['href'].lstrip().rstrip()
                     playerDict['Name'] = playerName
                     playerDict['Posted Price'] = postedPrice
                     playerDict['URL'] = playerURL
+                    playerDict['Order ID'] = orderID
                     sellOrders.append(playerDict)
 
-    except AttributeError:
+    except NameError:
         print("Attribute Error")
     
     return sellOrders
@@ -139,20 +148,25 @@ systemTime = datetime.strptime(systemTime, "%m/%d/%Y %I:%M%p")
 
 #specify which card series you want to search for
 
-cardSeries = requests.get('https://theshownation.com/mlb20/community_market?page=1&display_position=&amp=&max_best_buy_price=&max_best_sell_price=&max_rank=&min_best_buy_price=&min_best_sell_price=&min_rank=&name=&player_type_id=&rarity_id=&series_id=10022&team_id=&type=mlb_card', headers = headers)
+cardSeriesBase = 'https://theshownation.com/mlb20/community_market?'
+cardSeriesFilter = cardSeriesLink.strip(cardSeriesBase)
+
+cardSeries = requests.get(cardSeriesLink, headers = headers)
 
 #get total pages in card series
 soup = BeautifulSoup(cardSeries.text, 'html.parser')
 totalPagesFound = int(soup.find('h3').text.strip()[-1])
+print(totalPagesFound)
 
 while True:
     try:
+        
         #blank list of dicts to loop through to place buy order
         listings = []
-
+        
         #loop through each page in search results and get listings from table
         for each in range(1, totalPagesFound+1):
-            searchReults = requests.get('https://theshownation.com/mlb20/community_market?page='+str(each)+'&display_position=&amp=&max_best_buy_price=&max_best_sell_price=&max_rank=&min_best_buy_price=&min_best_sell_price=&min_rank=&name=&player_type_id=&rarity_id=&series_id=10022&team_id=&type=mlb_card', headers = headers)
+            searchReults = requests.get(cardSeriesBase+'page='+str(each)+cardSeriesFilter, headers = headers)
             
             soup = BeautifulSoup(searchReults.text, 'html.parser')
             table = soup.find('tbody')
@@ -184,7 +198,6 @@ while True:
         openOrderList = getTotalOpenOrders()
         currentOpenBuyOrders = len(getOpenBuyOrdersList())
         print('open buy orders = ' , currentOpenBuyOrders)
-        print(openOrderList)
 
         for each in listings:
 
@@ -210,16 +223,16 @@ while True:
                     currentOpenBuyOrders += 1
                     print(currentOpenBuyOrders)
                 
-                    if currentOpenBuyOrders == 10:
+                    if currentOpenBuyOrders >= 10:
                         break
 
             except AttributeError:
                 print('FAILED')
 
-        print('sleeping...')
-        time.sleep(120)
+        #time.sleep(120)
         print('executing sell orders...')
 
+        
         #get data from completed orders table
         completedPage = requests.get('https://theshownation.com/mlb20/orders/completed_orders', headers= headers)
 
@@ -246,9 +259,9 @@ while True:
                     totalSellable = getTotalSellable(sellPlayerLink)
                     if totalSellable > 0:
                         sellableBefore = getTotalSellable(sellPlayerLink)
+                        print(requestName)
                         placeSellOrder(sellPlayerLink)
                         sellableAfter = getTotalSellable(sellPlayerLink)
-                        print(requestName)
                         print(sellableAfter)
                         while sellableBefore == sellableAfter:
                             playsound('C:\\Users\\justi\\Downloads\\DingSound.mp3')
@@ -267,26 +280,36 @@ while True:
                 break
 
         print('DONE EXECUTING SELL ORDERS')
-        time.sleep(60)
-
+        #time.sleep(60)
+        
+        browser.get('https://theshownation.com/mlb20/orders/open_orders')
+        time.sleep(5)
         openSellOrders = getOpenSellOrdersList()
         for each in openSellOrders:
             currentSellAmount = getSellAmount(each['URL'])
             if int(each['Posted Price']) > currentSellAmount:
-                input('cancel order: ' + each['Name'] + ':' + ' '+ each['Posted Price'])
-                print(each)
+                print("Cancelling " + each["Name"] + " at " + each["Posted Price"])
+                print(each["Posted Price"])
+                print(currentSellAmount)
+                browser.find_element_by_xpath('//*[@id="'+each["Order ID"]+'"]/td[1]/form/button').click()
+                browser.switch_to_alert().accept()
                 sellableBefore = getTotalSellable(each['URL'])
                 placeSellOrder(each['URL'])
                 sellableAfter = getTotalSellable(each['URL'])
                 while sellableBefore == sellableAfter:
+                    if sellableBefore == 0:
+                        break
                     playsound('C:\\Users\\justi\\Downloads\\DingSound.mp3')
                     input("press button to continue: ")
                     print(each['Name'])
                     placeSellOrder(each['URL'])
                     sellableAfter = getTotalSellable(each['URL'])
-
-
+                print("NEW SELL ORDER PLACED!")
+            else:
+                print(each["Name"] + " at " + each["Posted Price"] + " is currently best buy price")
+                
 
     except KeyboardInterrupt:
         print("STOPPING PROGRAM")
-        break            
+        print('CANCELLING ORDERS...')
+        break
