@@ -1,0 +1,16 @@
+{
+    "authority": "mlb21.theshow.com",
+    "cache-control": "max-age=0",
+    "upgrade-insecure-requests": "1",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36",
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+    "sec-fetch-site": "cross-site",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-user": "?1",
+    "sec-fetch-dest": "document",
+    "sec-ch-ua": "^\\^Chromium^\\^;v=^\\^92^\\^, ^\\^",
+    "sec-ch-ua-mobile": "?0",
+    "referer": "https://mlb21.theshow.com/",
+    "accept-language": "en-US,en;q=0.9",
+    "cookie": "tsn_token=eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MjEzNjM2LCJ1c2VybmFtZSI6ImFuZ3J5X3BsYXR5cHVzNjJfUFNOIiwicGljdHVyZSI6Imh0dHBzOi8vdGhlc2hvd25hdGlvbi1wcm9kdWN0aW9uLnMzLmFtYXpvbmF3cy5jb20vZm9ydW1faWNvbnMvaWNvbl9jb29wX3dvcmxkc2VyaWVzLnBuZyIsImdyb3VwcyI6W119.6MEixvbrWIrlEMIkCykXZ595vvxs9EDowOIX2WXR3qA; ab.storage.userId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5=^%^7B^%^22g^%^22^%^3A^%^225704733^%^22^%^2C^%^22c^%^22^%^3A1628521772020^%^2C^%^22l^%^22^%^3A1628521772020^%^7D; ab.storage.deviceId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5=^%^7B^%^22g^%^22^%^3A^%^2204839285-6d34-b9e7-e1e0-431013c2293e^%^22^%^2C^%^22c^%^22^%^3A1628521772022^%^2C^%^22l^%^22^%^3A1628521772022^%^7D; _ga=GA1.2.542046081.1628521162; _ga_EJKYYHZPBF=GS1.1.1629233696.4.1.1629233774.0; _gid=GA1.2.50151595.1629471252; tsn_last_url=--CCFFYHBDZE06TDQk68hMVBcSZuvvw5UCRzitOjbSDA-jz3arCBA6JuL7UF4G_VdgvvuSonsTklc39M3siNW7pbtYN12tipmWoWScHWWELogG9RMrM4LU8Dxf_8cbHBrza4VwMsU68OyKuv-KRpJc4b_y364gtE9IrWOvTyC-JzVqLMf-8TNNRK71YvQvqDTBWVADUwpilFJlq9mLg-jYeTQpEBZTqOQkdOqtV5OcIwdcFJsAn8PjlpoDUbkd1-adrUAu-HkGgEj7WjHqv4buGveBMMJsF49ityt-qAmvCND_czPTqGScNFma4aC9vAx-FK305037DkkVsvFWaMbAmvXcV0Abu1ro5OumMXCmOjSj2Wk53LtylHQM3Sa7yWsEZLIB-bB9ITBx0SSG2XFFTX4uGTobDsczMICB1mrug^%^3D; ab.storage.sessionId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5=^%^7B^%^22g^%^22^%^3A^%^22353a538e-93e9-bb38-5537-c7e7d8e8463c^%^22^%^2C^%^22e^%^22^%^3A1629571611381^%^2C^%^22c^%^22^%^3A1629564070895^%^2C^%^22l^%^22^%^3A1629569811381^%^7D; _tsn_session=52a3cb89b1ddae74cfe135d043ec4b0f"
+}
