@@ -1,22 +1,17 @@
 import requests
 from bs4 import BeautifulSoup, NavigableString, Tag
 import csv
+import json
 import pandas as pd
 
 
-headers = {
-    'authority': 'theshownation.com',
-    'accept': 'text/html, application/xhtml+xml',
-    'turbolinks-referrer': 'https://theshownation.com/mlb20/community_market?display_position=&amp;max_best_buy_price=&amp;max_best_sell_price=&amp;max_rank=84&amp;min_best_buy_price=1000&amp;min_best_sell_price=&amp;min_rank=&amp;name=&amp;player_type_id=&amp;rarity_id=&amp;series_id=1337&amp;team_id=&amp;type=mlb_card',
-    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
-    'sec-fetch-site': 'same-origin',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-dest': 'empty',
-    'referer': 'https://theshownation.com/mlb20/community_market?display_position=&amp;max_best_buy_price=&amp;max_best_sell_price=&amp;max_rank=84&amp;min_best_buy_price=1000&amp;min_best_sell_price=&amp;min_rank=&amp;name=&amp;player_type_id=&amp;rarity_id=&amp;series_id=1337&amp;team_id=&amp;type=mlb_card',
-    'accept-language': 'en-US,en;q=0.9',
-    'cookie': '_ga=GA1.2.1852743341.1605549956; _gid=GA1.2.816802570.1605549956; tsn_last_seen_roster_id=18; tsn_token=eyJhbGciOiJIUzI1NiJ9.eyJpZCI6NDQ1MDgsInVzZXJuYW1lIjoiQ2luY3lGYW42MiIsInBpY3R1cmUiOiJodHRwczovL3N0YXRpYy1yZXNvdXJjZS5ucC5jb21tdW5pdHkucGxheXN0YXRpb24ubmV0L2F2YXRhci9XV1NfRS9FMDAyMC5wbmciLCJncm91cHMiOltdfQ.xPGBL5SKPRuBrAeQbjgbfqXxzEaispOVyLho_tgX4Ys; _tsn_session=79508495d49073c80ed86f4144eefd84',
-    'if-none-match': 'W/"6847f72878fbc7047fa7a11858af5c98"',
-}
+def getHeaders():
+    filename = 'headers.json'
+    with open(filename) as f:
+        headers = json.load(f)
+    return headers
+
+headers = getHeaders()
 
 getProfile = requests.get('https://theshownation.com/mlb20/universal_profiles/CincyFan62/game_history?mode=ARENA', headers=headers)
 soup = BeautifulSoup(getProfile.text, 'html.parser')
