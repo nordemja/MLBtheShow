@@ -15,6 +15,9 @@ This is a collection of tools I created to aid with several tasks within MLB The
 11. Save headers.json
 12. Run desired tool
 
-**NOTE:** Running MarketBot.py will require API_KEY and data_sitekey to be updated. To obtain an API key - a subscription to the 2captcha recaptcha solving service will be needed
+**NOTE:** Running MarketBot.py will require API_KEY and data_sitekey to be updated. To obtain an API key - a subscription to the 2captcha recaptcha solving service will be needed. Further guidance can be follwed at https://www.youtube.com/watch?v=_jV5GgbRpXA&t=1s
+
+## Next Steps
+
 
 
