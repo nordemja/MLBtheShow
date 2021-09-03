@@ -1,4 +1,4 @@
-# MLBtheShow
+# MLB The Show
 This is a collection of tools I created to aid with several tasks within MLB The Show.
 
 ## Usage
@@ -12,4 +12,9 @@ This is a collection of tools I created to aid with several tasks within MLB The
 8. Copy **ONLY** the python headers section. 
 9. Paste headers into headers.json
 10. Do ctrl+h and find/replace all ' with "
-11. save headers.json
+11. Save headers.json
+12. Run desired tool
+
+**NOTE:** Running MarketBot.py will require API_KEY and data_sitekey to be updated. To obtain an API key - a subscription to the 2captcha recaptcha solving service will be needed
+
+
