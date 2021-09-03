@@ -18,6 +18,8 @@ This is a collection of tools I created to aid with several tasks within MLB The
 **NOTE:** Running MarketBot.py will require API_KEY and data_sitekey to be updated. To obtain an API key - a subscription to the 2captcha recaptcha solving service will be needed. Further guidance can be follwed at https://www.youtube.com/watch?v=_jV5GgbRpXA&t=1s
 
 ## Next Steps
+I am currently in the process of updating both getRankedSeasonsData to work with 2021 data. Once this is done, then the .ipynb file will be develoed further for complete analysis as this is still a work in progress.
 
+For the market bot, I would like to integrate a daily report. This would work by scraping data from https://mlb21.theshow.com/orders/completed_orders and analyzing data such as frequently bought, frequently sold, average buy/sell price, best buy, best sell, as well as peak times. From here, I would generate visual representation using matplotlib and pyplot and generate an email report to give the user a daily summary of transactions.
 
 
