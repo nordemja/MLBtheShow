@@ -64,8 +64,8 @@ try:
         authToken = sellForm.find('input').get('value')
         return authToken
 
-    API_KEY = "d912946a33a658ddf683e126d8551d07"
-    data_sitekey = '6Leg5z4aAAAAABNstVp47FWPfKuOWeOtaGDayE6R'
+    API_KEY = "YOUR_API_KEY"
+    data_sitekey = "YOUR_DATA_SITEKEY"
 
     def doRecaptchaBuy(playerURL, stubsAvail, recaptchaToken, data):
         buyAmount = getBuyAmount(playerURL, data)
@@ -86,6 +86,8 @@ try:
         lst.append
         return(len(lst))
 
+    # the below "Solver" function can be credited to 
+    # https://github.com/AiWorkshop/Selenium-Project/blob/master/part10-reCaptchaV2.py
     def Solver(driver, playerURL, order, data):
         u1 = f"https://2captcha.com/in.php?key={API_KEY}&method=userrecaptcha&googlekey={data_sitekey}&pageurl={playerURL}&json=1&invisible=1"
         r1 = requests.get(u1)
