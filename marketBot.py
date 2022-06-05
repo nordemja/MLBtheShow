@@ -1,176 +1,322 @@
 import requests
 import traceback
 from bs4 import BeautifulSoup
-from datetime import datetime
 import time
 import json
-from playsound import PlaysoundException, playsound
-from requests.api import head
+import undetected_chromedriver as uc
+from playsound import playsound
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
-from anticaptchaofficial.recaptchav3proxyless import recaptchaV3Proxyless
 
 try:
     #header information to authenticate into account
 
     def getHeaders():
-        filename = 'headers.json'
+        filename = 'C:\\Users\\justi\\OneDrive\\Documents\\Python Programming\\MLBtheShow\\headers.json'
         with open(filename) as f:
             headers = json.load(f)
         return headers
 
     headers = getHeaders()
+    s = requests.Session()
+
+    def createNewHeaders(playerLink, headers):
+        results = requests.get(playerLink,headers=headers)
+        newCookie = results.headers['Set-Cookie'].split(';')[0]
+        tempHeaders = headers['cookie'].split(';')
+        tempHeaders[1] = newCookie
+        headers['cookie'] = tempHeaders[0]+';'+tempHeaders[1]+';'+tempHeaders[2]
+
+        newHeaders = json.dumps(headers)
+        filename = 'C:\\Users\\justi\\OneDrive\\Documents\\Python Programming\\MLBtheShow\\headers.json'
+        with open(filename, 'w') as outfile:
+            outfile.write(newHeaders)
 
     def getStubsAmount(data):
-        stubsAmount = requests.get('https://mlb21.theshow.com/dashboard', headers= data)
+        stubsAmount = s.get('https://mlb22.theshow.com/dashboard', headers= data)
         soup = BeautifulSoup(stubsAmount.text, 'html.parser')
         stubsAmount = soup.find('div', {'class': 'well stubs'}).text.strip().replace('Stubs Balance\n\n', '').replace(',','').replace('Wallet\n','')
         return int(stubsAmount)
 
     def getBuyAmount(playerURL, data):
-        x = requests.get(playerURL, headers= data)
+        x = s.get(playerURL, headers= data)
         soup = BeautifulSoup(x.text, 'html.parser')
-        table = soup.find('div', {'class': 'section-open-order-secondary'})
-        table = table.find('tbody')
-        buyAmount = table.find('tr')
-        buyAmount = buyAmount.find_all('td')
-        buyAmount = int(buyAmount[1].text.strip().replace(',', ''))
+        buyAmount = int(soup.find('input', {'name': 'price'}).get('value'))
         return buyAmount
 
     def getSellAmount(playerURL, data):
-        x = requests.get(playerURL, headers= data)
+        x = s.get(playerURL, headers= data)
         soup = BeautifulSoup(x.text, 'html.parser')
-        table = soup.find('div', {'class': 'section-open-order-primary'})
-        table = table.find('tbody')
-        buyAmount = table.find('tr')
-        buyAmount = buyAmount.find_all('td')
-        buyAmount = int(buyAmount[1].text.strip().replace(',', ''))
-        return buyAmount
+        sellAmount = soup.find_all('input', {'name': 'price'})
+        sellAmount = int(sellAmount[0].get('value'))
+        return sellAmount
 
     def getBuyAuthToken(playerURL, data):
-        pageRequest = requests.get(playerURL, headers= data)
+        buyAuthList = []
+        pageRequest = s.get(playerURL, headers= data)
         soup = BeautifulSoup(pageRequest.text, 'html.parser')
-        buyForm = soup.find('form', {'id': 'create-buy-order-form'})
-        authToken = buyForm.find('input').get('value')
-        return authToken
+        buyForm = soup.find_all('input', {'name': 'authenticity_token'})
+        for each in buyForm:
+            buyAuthList.append(each.get('value'))
+        return buyAuthList
 
     def getSellAuthToken(playerURL, data):
-        pageRequest = requests.get(playerURL, headers= data)
+        sellAuthList = []
+        pageRequest = s.get(playerURL, headers= data)
         soup = BeautifulSoup(pageRequest.text, 'html.parser')
-        sellForm = soup.find('form', {'id': 'create-sell-order-form'})
-        authToken = sellForm.find('input').get('value')
-        return authToken
+        sellForm = soup.find_all('input', {'name': 'authenticity_token'})
+        for each in sellForm:
+            sellAuthList.append(each.get('value'))
+        return sellAuthList
 
-    API_KEY = "YOUR_API_KEY"
-    data_sitekey = "YOUR_DATA_SITEKEY"
+    API_KEY = "d912946a33a658ddf683e126d8551d07"
+    data_sitekey = '6Leg5z4aAAAAABNstVp47FWPfKuOWeOtaGDayE6R'
 
-    def doRecaptchaBuy(playerURL, stubsAvail, recaptchaToken, data):
-        buyAmount = getBuyAmount(playerURL, data)
-        if stubsAvail < buyAmount:
-            return 2
-        lst = []
-        formData = {'authenticity_token': getBuyAuthToken(playerURL, data), 'price': buyAmount + 15, 'g-recaptcha-response': str(recaptchaToken)}
-        sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
+    def doRecaptchaBuy(playerURL, authToken, buyAmount, recaptchaToken, data):
+        formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': str(recaptchaToken)}
+        sendPost = s.post(playerURL+'/create_buy_order', formData, headers= data)
         print(sendPost)
-        lst.append(sendPost)
-        return(len(lst))
+        return 1
 
-    def doRecaptchaSell(playerURL, recaptchaToken, data):
-        lst = []
-        formData = {'authenticity_token': getSellAuthToken(playerURL, data), 'price': getSellAmount(playerURL, data) - 15, 'g-recaptcha-response': str(recaptchaToken)}
-        sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
+    def doRecaptchaSell(playerURL, authToken, sellAmount, recaptchaToken, data):
+        formData = {'authenticity_token': authToken, 'price': sellAmount - 10, 'g-recaptcha-response': str(recaptchaToken)}
+        sendPost = s.post(playerURL+'/create_sell_order', formData, headers= data)
         print(sendPost)
-        lst.append
-        return(len(lst))
+        return 1
 
     # the below "Solver" function can be credited to 
     # https://github.com/AiWorkshop/Selenium-Project/blob/master/part10-reCaptchaV2.py
-    def Solver(driver, playerURL, order, data):
-        u1 = f"https://2captcha.com/in.php?key={API_KEY}&method=userrecaptcha&googlekey={data_sitekey}&pageurl={playerURL}&json=1&invisible=1"
-        r1 = requests.get(u1)
-        print(r1.json())
-        rid = r1.json().get("request")
-        u2 = f"https://2captcha.com/res.php?key={API_KEY}&action=get&id={int(rid)}&json=1"
-        time.sleep(5)
-        while True:
-            r2 = requests.get(u2)
-            if r2.json().get("status") == 1:
-                form_tokon = r2.json().get("request")
-                print(r2.json())
-                print(type(form_tokon))
-                break
-            time.sleep(5)
-            
-        wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
-        driver.execute_script(wirte_tokon_js)
-        time.sleep(3)
-        if order == "buy":
-            doRecaptchaBuy(playerURL, getStubsAmount(data), form_tokon, data)
-        if order == "sell":
-            doRecaptchaSell(playerURL,form_tokon, data)
-
-    def doRecaptcha(playerURL, webDriver, data, order):
-        attempts = 0
-        while True:
-            try:
-                webDriver.get(playerURL)
-                if order == 'buy':
-                    stubsBefore = getStubsAmount(data)
-                    placeBuyOrder(playerURL, getStubsAmount(data), data)
-                    stubsAfterOrder = getStubsAmount(data)
-                    if stubsBefore == stubsAfterOrder:
-                        Solver(webDriver, playerURL, "buy", data)
-                else:
-                    sellableBefore = getTotalSellable(playerURL, data)
-                    placeSellOrder(playerURL, data)
-                    sellableAfter = getTotalSellable(playerURL, data)
-                    if sellableBefore == sellableAfter:
-                        Solver(webDriver, playerURL, "sell", data)
-
-            except:
-                attempts += 1
-                if attempts == 5:
-                    playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
-                    input('Enter new headers in JSON file: ')
-                    attempts = 0
+    def Solver(playerLst, driver, order, data, doubleCheck):
+        idList = []
+        tokenList = []
+        authList = []
+        costList = []
+        notReadyList = []
+        failedOrderList = []
+        for each in playerLst:
+            while True:
+                try:
+                    u1 = f"https://2captcha.com/in.php?key={API_KEY}&method=userrecaptcha&googlekey={data_sitekey}&pageurl={each['URL']}&json=1&invisible=1"
+                    r1 = s.get(u1)
+                    requestID = int(r1.json().get('request'))
+                    idList.append(requestID)
+                except:
+                    print("FAILED SENDING TOKEN - TRYING AGAIN....")
                     continue
-                continue
-            break
+                break
+        startTime = time.time()
+        
+        #NEED HEADERS CHECK IN AUTH TOKEN AND AMOUNT FUNCTIONS
+        for each in playerLst:
+            if order == 'buy':
+                attempts = 0
+                while True:
+                    try:
+                        authToken = getBuyAuthToken(each['URL'], data)
+                        authList.append(authToken)
+                    except:
+                        attempts += 1
+                        if attempts == 5:
+                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
+                            print(str(getHeaders())+'\n')
+                            input('Enter new headers in JSON file 1: ')
+                            attempts = 0
+                            data = getHeaders()
+                            continue
+                    break
+                
+                attempts = 0
+                while True:
+                    try:
+                        orderAmount = getBuyAmount(each['URL'], data)
+                        costList.append(orderAmount)
+                    except:
+                        attempts += 1
+                        if attempts == 5:
+                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
+                            print(str(getHeaders())+'\n')
+                            input('Enter new headers in JSON file 2: ')
+                            attempts = 0
+                            data = getHeaders()
+                            continue
+                    break
+            elif order == 'sell':
+                attempts = 0
+                while True:
+                    try:
+                        authToken = getSellAuthToken(each['URL'], data)
+                        authList.append(authToken)
+                    except:
+                        attempts += 1
+                        if attempts == 5:
+                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
+                            print(str(getHeaders())+'\n')
+                            input('Enter new headers in JSON file 3: ')
+                            attempts = 0
+                            data = getHeaders()
+                            continue
+                    break
+                
+                attempts = 0
+                while True:
+                    try:
+                        orderAmount = getSellAmount(each['URL'], data)
+                        costList.append(orderAmount)
+                    except:
+                        attempts += 1
+                        if attempts == 5:
+                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
+                            print(str(getHeaders())+'\n')
+                            input('Enter new headers in JSON file 4: ')
+                            attempts = 0
+                            data = getHeaders()
+                            continue
+                    break
+        
+        i = 0
+        listLength = len(idList)
+        breakOutFlag = False
+        while i < listLength:
+            while True:
+                try:
+                    u2 = f"https://2captcha.com/res.php?key={API_KEY}&action=get&id={idList[each]}&json=1"
+                    r2 = s.get(u2)
+                    if r2.json().get("status") == 1:
+                        form_tokon = r2.json().get("request")
+                        tokenList.append(form_tokon)
+                        print('acquired token for: ' + playerLst[each]['player name'])
+                        print(type(form_tokon))
+                        i += 1
+                        idList.remove(idList[i])
+                        listLength = len(idList)
+                        if i >= listLength:
+                            i = 0
+                        break
+                    else:
+                        print(f"Token for {playerLst[each]['player name']} not ready yet")
+                        pass
+                    if time.time() - startTime > 59:
+                        breakOutFlag = True
+                        break
+                except:
+                    print('FAILED GETTING TOKEN - RETRYING....')
+                    continue
+                break
+            
+            if breakOutFlag:
+                break
 
-    def placeBuyOrder(playerURL, stubsAvail, data):
-        buyAmount = getBuyAmount(playerURL, data)
-        if stubsAvail < buyAmount:
-            return 2
-        lst = []
-        formData = {'authenticity_token': getBuyAuthToken(playerURL, data), 'price': buyAmount + 15, 'button': ''}
+        
+        for each in range(0,len(playerLst)):
+            if order == "buy":
+                if doubleCheck:
+                    print('placing new buy order for ' + playerLst[each]['player name'])
+                else:
+                    print(playerLst[each])
+                
+                attempts = 0
+                while True:
+                    try:
+                        stubsBefore = getStubsAmount(data)
+                        authToken = authList[each]
+                        data = placeBuyOrder(playerLst[each]['URL'],costList[each], tokenList[each], authToken, stubsBefore, data)
+                    except:
+                        attempts += 1
+                        if attempts == 5:
+                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
+                            print(str(getHeaders())+'\n')
+                            input('Enter new headers in JSON file 5: ')
+                            attempts = 0
+                            data = getHeaders()
+                            continue
+                    break
+
+            if order == "sell":
+                if doubleCheck:
+                    print('placing new sell order for ' + playerLst[each]['player name'])
+                else:
+                    print(playerLst[each]['player name'])
+                attempts = 0
+                while True:
+                    try:
+                        sellableBefore = getTotalSellable(playerLst[each]['URL'], data)
+                        authToken = authList[each]
+                        data = placeSellOrder(playerLst[each]['URL'], costList[each], tokenList[each], authToken, sellableBefore, data)
+                       # if (sellableBefore == sellableAfter) and (sellableAfter != 0):
+                       #     print("TOKEN EXPIRED FOR " + playerLst[each]['player name'])
+                       #     failedOrderList.append(playerLst[each])
+
+                    except:
+                        attempts += 1
+                        if attempts == 5:
+                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
+                            print(str(getHeaders())+'\n')
+                            input('Enter new headers in JSON file 6: ')
+                            attempts = 0
+                            data = getHeaders()
+                        continue
+                    break
+
+        if len(failedOrderList) > 0:
+            Solver(failedOrderList, driver, 'sell', data, doubleCheck)
+
+        return data
+
+
+    def doRecaptcha(playerLst, webDriver, order, data, doubleCheck):
+
+        if order == 'buy':
+            data = Solver(playerLst, webDriver, order, data, doubleCheck)
+        else:
+            data = Solver(playerLst, webDriver, order, data, doubleCheck)
+        
+        return data
+    
+    def placeBuyOrder(playerURL, buyAmount, form_token, authTokenList, stubsBefore, data):
+        i = 0
+        formData = {'authenticity_token': authTokenList[i], 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
         sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
+        stubsAfter = getStubsAmount(data)
+        while stubsBefore == stubsAfter:
+            i += 1
+            if i == 4:
+                i = 0
+            authToken = authTokenList[i]
+            formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
+            sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
+            stubsAfter = getStubsAmount(data)
         print(sendPost)
-        lst.append(sendPost)
-        return(len(lst))
+        return data
 
-    def placeSellOrder(playerURL, data):
-        lst = []
-        formData = {'authenticity_token': getSellAuthToken(playerURL, data), 'price': getSellAmount(playerURL, data) - 15, 'button': ''}
+    def placeSellOrder(playerURL, sellAmount, form_token, authTokenList, sellableBefore, data):
+        i = 0
+        if i == 4:
+            i = 0
+        formData = {'authenticity_token': authTokenList[i], 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
         sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
+        sellableAfter = getTotalSellable(playerURL,data)
+        while sellableBefore == sellableAfter:
+            i += 1
+            authToken = authTokenList[i]
+            formData = {'authenticity_token': authToken, 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
+            sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
+            sellableAfter = getTotalSellable(playerURL, data)
         print(sendPost)
-        lst.append
-        return(len(lst))
-
-
+        return data
+    
     def getTotalSellable(playerURL, data):
-        playerPage = requests.get(playerURL, headers= data)
+        playerPage = s.get(playerURL, headers= data)
         soup = BeautifulSoup(playerPage.text, 'html.parser')
-        totalSellable = soup.find('div', {'class': 'section-order-info-secondary'})
-        totalSellable = totalSellable.find('div', {'class': 'well'})
-        return int(totalSellable.text.strip()[-1])
+        totalSellable = soup.find_all('div', {'class': 'well'})[4].text.strip()[-1]
+        return int(totalSellable)
 
 
     def getOpenBuyOrdersList(data):
         buyOrders = []
-        openOrdersPage = requests.get('https://mlb21.theshow.com/orders/buy_orders', headers= data)
+        openOrdersPage = s.get('https://mlb22.theshow.com/orders/buy_orders', headers= data)
         soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
 
         try:
@@ -182,7 +328,7 @@ try:
                 postedPrice = each.contents[5].text.strip().replace(',','')
                 orderID = each.get('id')
                 playerURL = each.find('a')
-                playerURL = 'https://mlb21.theshow.com' + playerURL['href'].lstrip().rstrip()
+                playerURL = 'https://mlb22.theshow.com' + playerURL['href'].lstrip().rstrip()
                 playerDict['Name'] = playerName
                 playerDict['Posted Price'] = postedPrice
                 playerDict['URL'] = playerURL
@@ -197,7 +343,7 @@ try:
     def getOpenSellOrdersList(data):
         sellOrders = []
         try:
-            openOrdersPage = requests.get('https://mlb21.theshow.com/orders/sell_orders', headers= data)
+            openOrdersPage = s.get('https://mlb22.theshow.com/orders/sell_orders', headers= data)
             soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
             ordersList = soup.find('tbody')
             openOrder = ordersList.find_all('tr')
@@ -207,7 +353,7 @@ try:
                 postedPrice = each.contents[5].text.strip().replace(',','')
                 orderID = each.get('id')
                 playerURL = each.find('a')
-                playerURL = 'https://mlb21.theshow.com' + playerURL['href'].lstrip().rstrip()
+                playerURL = 'https://mlb22.theshow.com' + playerURL['href'].lstrip().rstrip()
                 playerDict['Name'] = playerName
                 playerDict['Posted Price'] = postedPrice
                 playerDict['URL'] = playerURL
@@ -227,39 +373,40 @@ try:
     
     #FINISH FIXING
     def doSellOrders(currentHeaders):
-        
-        #time.sleep(120)
+
         print("Executing sell orders....")
+        currentHeaders = getHeaders()
 
         #get data from completed orders table
         attempts = 0
         while True:
             try:
-                completedPage = requests.get('https://mlb21.theshow.com/orders/completed_orders', headers= currentHeaders)
+                completedPage = s.get('https://mlb22.theshow.com/orders/completed_orders', headers= currentHeaders)
 
                 soup = BeautifulSoup(completedPage.text, 'html.parser')
                 totalCompletedOrdersPages = soup.find('div', {'class': 'pagination'})
-                totalCompletedOrdersPages = totalCompletedOrdersPages.find_all('a')
-                totalCompletedOrdersPages =  int(totalCompletedOrdersPages[3].text)
+                totalCompletedOrdersPages = totalCompletedOrdersPages.find('a')
+                testVar =  int(totalCompletedOrdersPages.text)
             except:
                 attempts += 1
                 if attempts == 5:
                     playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
                     print(str(getHeaders())+'\n')
-                    input('Enter new headers in JSON file: ')
+                    input('Enter new headers in JSON file 7: ')
                     currentHeaders = getHeaders()
                     attempts = 0
                     continue
                 continue
             break
 
-        for each in range(1, totalCompletedOrdersPages+1):
+        sellPlayerList = []
+        for each in range(1, testVar+1):
             print("PAGE: " + str(each))
             cardsSellable = 1
             attempts = 0
             while True:
                 try:
-                    completedPage = requests.get('https://mlb21.theshow.com/orders/completed_orders?page='+str(each)+'&', headers= currentHeaders)
+                    completedPage = s.get('https://mlb22.theshow.com/orders/completed_orders?page='+str(each)+'&', headers= currentHeaders)
                     soup = BeautifulSoup(completedPage.text, 'html.parser')
                     playerOrderInfo = soup.find('tbody')
                     playerOrderInfo = playerOrderInfo.find_all('tr')
@@ -268,7 +415,7 @@ try:
                     if attempts == 5:
                         playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
                         print(str(getHeaders())+'\n')
-                        input('Enter new headers in JSON file: ')
+                        input('Enter new headers in JSON file 8: ')
                         currentHeaders = getHeaders()
                         attempts = 0
                         continue
@@ -278,6 +425,7 @@ try:
             for each in playerOrderInfo:
                 cardsSellable = 1
                 attempts = 0
+                playerDict = {}
                 while True:
                     try:
                     #loop through completed orders page and get time order was completed as datetime object
@@ -287,20 +435,13 @@ try:
                         orderType = each.contents[3].text.strip().split()[0]
                         if orderType == 'Bought':
                             sellPlayerLink = each.find('a')
-                            sellPlayerLink = 'https://mlb21.theshow.com' + sellPlayerLink['href'].lstrip().rstrip()
+                            sellPlayerLink = 'https://mlb22.theshow.com' + sellPlayerLink['href'].lstrip().rstrip()
                             sellableBefore = getTotalSellable(sellPlayerLink, currentHeaders)
                             if sellableBefore > 0:
+                                playerDict['player name'] = requestName
+                                playerDict['URL'] = sellPlayerLink
+                                sellPlayerList.append(playerDict)
                                 print(requestName)
-                                orderState = placeSellOrder(sellPlayerLink, currentHeaders)
-                                sellableAfter = getTotalSellable(sellPlayerLink, currentHeaders)
-                                print(sellableAfter)
-                                if sellableBefore == sellableAfter:
-                                    #BROWSER GET
-                                    doRecaptcha(sellPlayerLink, browser, currentHeaders, 'sell')
-                                    sellableAfter = getTotalSellable(sellPlayerLink, currentHeaders)
-                                    if sellableBefore == sellableAfter:
-                                        playsound('C:\\Users\\justi\\Downloads\\DingSound.mp3')
-                                        input("press enter: ")
                                         
                             else:
                                 cardsSellable = 0
@@ -313,7 +454,7 @@ try:
                                 break
                             playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
                             print(str(getHeaders())+'\n')
-                            input('Enter new headers in JSON file: ')
+                            input('Enter new headers in JSON file 9: ')
                             currentHeaders = getHeaders()
                             attempts = 0
                             continue
@@ -332,73 +473,66 @@ try:
             if cardsSellable == 0:
                 break
 
+        if len(sellPlayerList) > 0:
+            print('\n')
+            createNewHeaders(sellPlayerLink, currentHeaders)
+            currentHeaders = doRecaptcha(sellPlayerList,browser,'sell',currentHeaders, False)
+
         print('DONE EXECUTING SELL ORDERS')
         return currentHeaders
         #time.sleep(60)
 
     print(getStubsAmount(headers))
 
-    chromeOptions = Options()
-    chromeOptions.add_extension('C:\\Users\\justi\\Downloads\\Buster Captcha Solver for Humans 1.1.0.0.crx')
 
-    browser = webdriver.Chrome(ChromeDriverManager().install() ,options=chromeOptions)
-    browser.get('https://mlb21.theshow.com/community_market')
+    browser = uc.Chrome()
+    browser.get('https://mlb22.theshow.com/community_market')
 
     time.sleep(5)
 
     #specify which card series you want to search for
 
     cardSeriesLink = input('Enter Link of Card Criteria: ')
-    cardSeriesBase = 'https://mlb21.theshow.com/community_market'
-    cardSeriesFilter = cardSeriesLink.strip(cardSeriesBase+'?page=')
+    cardSeriesBase = 'https://mlb22.theshow.com/community_market'
+    cardSeriesFilter = 'ma' + cardSeriesLink.strip(cardSeriesBase+'?page=')
 
-    cardSeries = requests.get(cardSeriesLink, headers = headers)
+    cardSeries = s.get(cardSeriesLink, headers = headers)
 
     #get total pages in card series
 
     soup = BeautifulSoup(cardSeries.text, 'html.parser')
     totalPagesFound = int(soup.find('h3').text.strip()[-1])
     print(totalPagesFound)
+
     headers = doSellOrders(headers)
+
     while True:
         try:
             #blank list of dicts to loop through to place buy order
             openListingLength = len(getTotalOpenOrders(headers))
             listings = []
-            
-            #loop through each page in search results and get listings from table
-            for each in range(1, totalPagesFound+1):
-                while True:
-                    try:
 
-                        searchReults = requests.get(cardSeriesBase+'?page='+str(each)+cardSeriesFilter+'uipment', headers = headers)
-                        soup = BeautifulSoup(searchReults.text, 'html.parser')
-                        table = soup.find('tbody')
-                        results = table.find_all('tr')
+            headers = getHeaders()
 
-                        #loop through listings pulling needed information to place order then place information in a list of dictionaries
-                        for each in results:
-                            listingsDict = {}
+            results = requests.get('https://mlb22.theshow.com/apis/listings?type=equipment&rarity=gold&min_best_buy_price=1').json()
+            results = results['listings']
 
-                            requestName = each.contents[5].text.strip()
-                            buyAmount = int(each.contents[11].text.strip()) + 15
-                            sellAmount = int(each.contents[9].text.strip()) - 15
-                            profit = int((sellAmount) * .9) - buyAmount
-                            link = each.find('a')
-                            formattedURL = 'https://mlb21.theshow.com' + link['href'].lstrip().rstrip().strip('fave')
+            for x in results:
+                listingsDict = {}
 
-                            listingsDict['player name'] = requestName
-                            listingsDict['buy amount'] = buyAmount
-                            listingsDict['sell amount'] = sellAmount
-                            listingsDict['profit'] = profit
-                            listingsDict['URL'] = formattedURL
-                            listings.append(listingsDict)
-                    except:
-                        playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
-                        print(str(getHeaders())+'\n')
-                        input('Enter new headers in JSON file: ')
-                        headers = getHeaders()
-                    break
+                requestName = x['listing_name']
+                buyAmount = int(x['best_buy_price']) + 10
+                sellAmount = int(x['best_sell_price']) - 10
+                profit = int((sellAmount) * .9) - buyAmount
+                uuid = x['item']['uuid']
+                link = f"https://mlb22.theshow.com/items/{uuid}"
+
+                listingsDict['player name'] = requestName
+                listingsDict['buy amount'] = buyAmount
+                listingsDict['sell amount'] = sellAmount
+                listingsDict['profit'] = profit
+                listingsDict['URL'] = link
+                listings.append(listingsDict)
 
             #sort by highest profit
             listings = sorted(listings, key = lambda i: i['profit'])
@@ -406,75 +540,38 @@ try:
             
             #place buy order for top 10 most profittable cards
             openOrderList = getTotalOpenOrders(headers)
+            openListingLength = len(openOrderList)
             currentOpenBuyOrders = len(getOpenBuyOrdersList(headers))
             print('open buy orders = ' , currentOpenBuyOrders)
 
+            playerList = []
+            players = 0
+
             for each in listings:
                 orderState = 0
-                attempts = 0
-                while True:
-                    try:
-                        if any(d['Name'] == each['player name'] for d in openOrderList):
-                            print(each['player name'])
-                            pass
-                        else:
-                            print(each)
-                            stubsBefore = getStubsAmount(headers)
-                            orderState = placeBuyOrder(each['URL'], stubsBefore, headers)
-                            if orderState == 2:
-                                break
-                            else:
-                                stubsAfterOrder = getStubsAmount(headers)
-                                recaptchaAttempts = 0
-                                if stubsBefore == stubsAfterOrder:      
-                                    doRecaptcha(each['URL'], browser, headers, 'buy')   
-                                    stubsAfterOrder = getStubsAmount(headers)
-                                    if stubsBefore == stubsAfterOrder:
-                                        playsound('C:\\Users\\justi\\Downloads\\DingSound.mp3')
-                                        input("press enter: ")
-                                        
-                                
-                                currentOpenBuyOrders += 1
-                                openListingLength += 1
-                                print(currentOpenBuyOrders)                 
 
-                    except:
-                        attempts += 1
-                        if attempts == 5:
-                            if orderState == 1:
-                                currentOpenBuyOrders += 1
-                                openListingLength += 1
-                                print(currentOpenBuyOrders)
-                                break
-                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
-                            print(str(getHeaders())+'\n')
-                            input('Enter new headers in JSON file: ')
-                            attempts = 0
-                            headers = getHeaders()
-                            continue
-                        else:
-                            if orderState == 1:
-                                currentOpenBuyOrders += 1
-                                openListingLength += 1
-                                print(currentOpenBuyOrders)
-                                break
-                            print("Failed " + str(attempts))
-                            continue
+                if any(d['Name'] == each['player name'] for d in openOrderList):
+                    print(each['player name'])
+                    pass
+                else:
+                    if currentOpenBuyOrders == 10 or openListingLength >= 25:
+                        break
+                    print(each)
+                    playerList.append(each)
+                    currentOpenBuyOrders += 1
+                    openListingLength
 
-                    break
             
-                if currentOpenBuyOrders >= 15 or openListingLength >= 25:
-                    break
-                if orderState == 2:
-                    break
-                    
+            headers = doRecaptcha(playerList,browser,'buy',headers, False)
 
             headers = doSellOrders(headers)
 
             openBuyOrders = getOpenBuyOrdersList(headers)
-            browser.get('https://mlb21.theshow.com/orders/buy_orders')
+            browser.get('https://mlb22.theshow.com/orders/buy_orders')
             time.sleep(3)
+            playerList = []
             for each in openBuyOrders:
+                playerDict = {}
                 attempts = 0
                 while True:
                     try:
@@ -484,7 +581,7 @@ try:
                         if attempts == 5: 
                             playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
                             print(str(getHeaders())+'\n')
-                            input('Enter new headers in JSON file: ')
+                            input('Enter new headers in JSON file 11: ')
                             headers = getHeaders()
                             attempts = 0
                             continue
@@ -494,62 +591,37 @@ try:
                     break
                 
                 if int(each['Posted Price']) < currentPrice:
+                    playerDict['player name'] = each['Name']
+                    playerDict['URL'] = each['URL']
                     while True:
                         try:
+                            print("cancelling order for " + each['Name'])
                             browser.find_element_by_xpath('//*[@id="'+each['Order ID']+'"]/td[1]/form/button').click()
-                            browser.switch_to_alert().accept()
+                            browser.switch_to.alert.accept()
+                            playerList.append(playerDict)
+                            
                         except:
-                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
-                            print(str(getHeaders())+'\n')
-                            input('Enter new headers in JSON file: ')
-                            headers = getHeaders()
-                        break
-                    orderState = 0
-                    attempts = 0
-                    while True:
-                        try:
-                            print("posting new order for " + each['Name'])
-                            stubsBefore = getStubsAmount(headers)
-                            orderState = placeBuyOrder(each['URL'],stubsBefore, headers)
-                            if orderState == 2:
-                                break
-                            stubsAfterOrder = getStubsAmount(headers)
-                            recaptchaAttempts = 0
-                            if stubsBefore == stubsAfterOrder:
-                                doRecaptcha(each['URL'], browser, headers, 'buy')
-                                stubsAfterOrder = getStubsAmount(headers)
-                                if stubsBefore == stubsAfterOrder:
-                                    playsound('C:\\Users\\justi\\Downloads\\DingSound.mp3')
-                                    input("press enter: ")
 
-                            browser.get('https://mlb21.theshow.com/orders/buy_orders')
-                        except:
-                            attempts += 1
-                            if attempts == 5:
-                                if orderState == 1:
-                                    browser.get('https://mlb21.theshow.com/orders/buy_orders')
-                                    break
-                                playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
-                                print(str(getHeaders())+'\n')
-                                input('Enter new headers in JSON file: ')
-                                headers = getHeaders()
-                                attempts = 0
-                                continue                             
-                            else:
-                                if orderState == 1:
-                                    browser.get('https://mlb21.theshow.com/orders/buy_orders')
-                                    break
-                                print('Failed ' + str(attempts))
-                                continue
+                            playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
+                            pass
                         break
                 else:
                     print(each['Name'] + ' at ' + each['Posted Price'] + ' is currently best sell price')
-                            
             
-            browser.get('https://mlb21.theshow.com/orders/sell_orders')
-            time.sleep(5)
+            headers = doRecaptcha(playerList,browser,'buy',headers,True)
+                            
+            while True:
+                try:
+                    browser.get('https://mlb22.theshow.com/orders/sell_orders')
+                except:
+                    continue
+                break
+            time.sleep(3)
             openSellOrders = getOpenSellOrdersList(headers)
+
+            playerList = []
             for each in openSellOrders:
+                playerDict = {}
                 orderState = 0
                 attempts = 0
                 try:
@@ -561,7 +633,7 @@ try:
                             if attempts == 5:
                                 playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
                                 print(str(getHeaders())+'\n')
-                                input('Enter new headers in JSON file: ')
+                                input('Enter new headers in JSON file 13: ')
                                 headers = getHeaders()
                                 attempts = 0
                             else:
@@ -569,69 +641,29 @@ try:
                                 continue
                         break
                     if int(each['Posted Price']) > currentSellAmount:
+                        playerDict['player name'] = each['Name']
+                        playerDict['URL'] = each['URL']
+                        playerList.append(playerDict)
                         print("Cancelling " + each["Name"] + " at " + each["Posted Price"])
                         print(each["Posted Price"])
                         print(currentSellAmount)
-                        browser.find_element_by_xpath('//*[@id="'+each["Order ID"]+'"]/td[1]/form/button').click()
-                        browser.switch_to_alert().accept()
-                        attempts = 0
-                        while True:
-                            try:
-                                sellableBefore = getTotalSellable(each['URL'],headers)
-                                orderState = placeSellOrder(each['URL'],headers)
-                                sellableAfter = getTotalSellable(each['URL'],headers)
-                                recaptchaAttempts = 0
-                                if sellableBefore == sellableAfter:
-                                    if sellableBefore == 0:
-                                        break
-                                    doRecaptcha(each['URL'], browser, headers, 'sell')
-                                    sellableAfter = getTotalSellable(each['URL'],headers)
-                                    if sellableBefore == sellableAfter:
-                                        playsound('C:\\Users\\justi\\Downloads\\DingSound.mp3')
-                                        input("press enter: ")
-                                        break
-                                print("NEW SELL ORDER PLACED!")
-                            except:
-                                attempts += 1
-                                if attempts == 5:
-                                    if orderState == 1:
-                                        break
-                                    playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
-                                    print(str(getHeaders())+'\n')
-                                    input('Enter new headers in JSON file: ')
-                                    headers = getHeaders()
-                                    attempts = 0
-                                    continue
+                        try:
+                            browser.find_element_by_xpath('//*[@id="'+each["Order ID"]+'"]/td[1]/form/button').click()
+                            browser.switch_to.alert.accept()
+                        except:
+                            pass
 
-                                else:
-                                    if orderState == 1:
-                                        break
-                                    print("failed " + str(attempts))
-                                    continue
-                            break
-                        while True:
-                            try:
-                                browser.get('https://mlb21.theshow.com/orders/sell_orders')
-                            except:
-                                attempts += 1
-                                if attempts == 5:
-                                    playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
-                                    print(str(getHeaders())+'\n')
-                                    input('Enter new headers in JSON file: ')
-                                    headers = getHeaders()
-                                    attempts = 0
-                                    continue
-                                else:
-                                    print("failed " + str(attempts) + " getting open sell page")
-                                    continue
-                            break
                     else:
                         print(each["Name"] + " at " + each["Posted Price"] + " is currently best buy price")
                 except NoSuchElementException:
                     print("Order not found")
 
+            headers = doRecaptcha(playerList,browser,'sell',headers,True)
+
                  
             headers = doSellOrders(headers)
+
+
 
         except KeyboardInterrupt:
             print("STOPPING PROGRAM")
@@ -640,3 +672,4 @@ try:
 except Exception:
     print(traceback.format_exc())
     playsound('C:\\Users\\justi\\Downloads\\errorSound.mp3')
+    
