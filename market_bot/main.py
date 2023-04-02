@@ -45,13 +45,13 @@ try:
         stubsAmount = soup.find('div', {'class': 'well stubs'}).text.strip().replace('Stubs Balance\n\n', '').replace(',','').replace('Wallet\n','')
         return int(stubsAmount)
 
-    def getBuyAmount(playerURL, data):
+    def getBuyAmount(playerURL, data, old_buy_amount):
         x = s.get(playerURL, headers= data)
         soup = BeautifulSoup(x.text, 'html.parser')
         buyAmount = int(soup.find('input', {'name': 'price'}).get('value'))
         return buyAmount
 
-    def getSellAmount(playerURL, data):
+    def getSellAmount(playerURL, data, old_buy_amount):
         x = s.get(playerURL, headers= data)
         soup = BeautifulSoup(x.text, 'html.parser')
         sellAmount = soup.find_all('input', {'name': 'price'})
@@ -79,17 +79,17 @@ try:
     API_KEY = "d912946a33a658ddf683e126d8551d07"
     data_sitekey = '6Leg5z4aAAAAABNstVp47FWPfKuOWeOtaGDayE6R'
 
-    def doRecaptchaBuy(playerURL, authToken, buyAmount, recaptchaToken, data):
-        formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': str(recaptchaToken)}
-        sendPost = s.post(playerURL+'/create_buy_order', formData, headers= data)
-        print(sendPost)
-        return 1
+    # def doRecaptchaBuy(playerURL, authToken, buyAmount, recaptchaToken, data):
+    #     formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': str(recaptchaToken)}
+    #     sendPost = s.post(playerURL+'/create_buy_order', formData, headers= data)
+    #     print(sendPost)
+    #     return 1
 
-    def doRecaptchaSell(playerURL, authToken, sellAmount, recaptchaToken, data):
-        formData = {'authenticity_token': authToken, 'price': sellAmount - 10, 'g-recaptcha-response': str(recaptchaToken)}
-        sendPost = s.post(playerURL+'/create_sell_order', formData, headers= data)
-        print(sendPost)
-        return 1
+    # def doRecaptchaSell(playerURL, authToken, sellAmount, recaptchaToken, data):
+    #     formData = {'authenticity_token': authToken, 'price': sellAmount - 10, 'g-recaptcha-response': str(recaptchaToken)}
+    #     sendPost = s.post(playerURL+'/create_sell_order', formData, headers= data)
+    #     print(sendPost)
+    #     return 1
 
     # the below "Solver" function can be credited to 
     # https://github.com/AiWorkshop/Selenium-Project/blob/master/part10-reCaptchaV2.py
@@ -115,9 +115,8 @@ try:
                 attempts = 0
                 while True:
                     try:
-                        authToken = getBuyAuthToken(each['URL'], data)
-                        authToken = authToken[1]
-                        each['auth token'] = authToken
+                        authTokenList = getBuyAuthToken(each['URL'], data)
+                        each['auth token'] = authTokenList
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -132,8 +131,8 @@ try:
                 attempts = 0
                 while True:
                     try:
-                        orderAmount = getBuyAmount(each['URL'], data)
-                        each['buy amount'] = orderAmount
+                        orderAmount = getBuyAmount(each['URL'], data, each['buy amount'])
+                        each['buy amount NEW'] = orderAmount
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -186,7 +185,6 @@ try:
                     u2 = f"https://2captcha.com/res.php?key={API_KEY}&action=get&id={playerLst[i]['request_id']}&json=1"
                     r2 = s.get(u2)
                     if r2.json().get("status") == 1: 
-                        id_val = playerLst[i]['request_id']
                         form_tokon = r2.json().get("request")
                         playerLst[i]['form_token'] = form_tokon
                         print(f"ACQUIRED TOKEN FOR {playerLst[i]['player name']}")
@@ -218,7 +216,9 @@ try:
                         wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
                         driver.execute_script(wirte_tokon_js)
                         stubsBefore = getStubsAmount(data)
-                        # authToken = authList[each]
+                        # print(playerLst[each]['buy amount'])
+                        # print(playerLst[each]['buy amount NEW'])
+                        # print('---------------------')
                         data = placeBuyOrder(playerLst[each]['URL'], playerLst[each]['buy amount'], playerLst[each]['form_token'], playerLst[each]['auth token'], stubsBefore, data)
                     except:
                         attempts += 1
@@ -270,18 +270,18 @@ try:
         return data
     
     def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data):
-        i = 0
-        formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
+        formData = {'authenticity_token': authToken[1], 'price': buyAmount, 'g-recaptcha-response': form_token}
         sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
-        stubsAfter = getStubsAmount(data)
-        while stubsBefore == stubsAfter:
-            i += 1
-            if i == 4:
-                i = 0
-            formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
-            sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
-            stubsAfter = getStubsAmount(data)
         print(sendPost)
+        # stubsAfter = getStubsAmount(data)
+        # while stubsBefore == stubsAfter:
+        #     i += 1
+        #     if i == 4:
+        #         i = 0
+        #     formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
+        #     sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
+        #     stubsAfter = getStubsAmount(data)
+        # print(sendPost)
         return data
 
     def placeSellOrder(playerURL, sellAmount, form_token, authTokenList, sellableBefore, data):
