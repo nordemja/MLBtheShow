@@ -13,6 +13,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 error_sound_path = 'error_sound.mp3'
 headers_path = 'headers.json'
+base_path = "https://mlb23.theshow.com/"
 
 try:
     #header information to authenticate into account
@@ -39,7 +40,7 @@ try:
             outfile.write(newHeaders)
 
     def getStubsAmount(data):
-        stubsAmount = s.get('https://mlb23.theshow.com/dashboard', headers= data)
+        stubsAmount = s.get(base_path + 'dashboard', headers= data)
         soup = BeautifulSoup(stubsAmount.text, 'html.parser')
         stubsAmount = soup.find('div', {'class': 'well stubs'}).text.strip().replace('Stubs Balance\n\n', '').replace(',','').replace('Wallet\n','')
         return int(stubsAmount)
@@ -93,11 +94,7 @@ try:
     # the below "Solver" function can be credited to 
     # https://github.com/AiWorkshop/Selenium-Project/blob/master/part10-reCaptchaV2.py
     def Solver(playerLst, driver, order, data, doubleCheck):
-        idList = []
-        tokenList = []
         authList = []
-        costList = []
-        notReadyList = []
         failedOrderList = []
         for each in playerLst:
             while True:
@@ -105,7 +102,7 @@ try:
                     u1 = f"https://2captcha.com/in.php?key={API_KEY}&method=userrecaptcha&googlekey={data_sitekey}&pageurl={each['URL']}&json=1&invisible=1"
                     r1 = s.get(u1)
                     requestID = int(r1.json().get('request'))
-                    idList.append(requestID)
+                    each['request_id'] = requestID
                 except:
                     print("FAILED SENDING TOKEN - TRYING AGAIN....")
                     continue
@@ -119,7 +116,8 @@ try:
                 while True:
                     try:
                         authToken = getBuyAuthToken(each['URL'], data)
-                        authList.append(authToken)
+                        authToken = authToken[1]
+                        each['auth token'] = authToken
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -135,7 +133,7 @@ try:
                 while True:
                     try:
                         orderAmount = getBuyAmount(each['URL'], data)
-                        costList.append(orderAmount)
+                        each['buy amount'] = orderAmount
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -167,7 +165,7 @@ try:
                 while True:
                     try:
                         orderAmount = getSellAmount(each['URL'], data)
-                        costList.append(orderAmount)
+                        each['sell amount'] = orderAmount
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -178,38 +176,30 @@ try:
                             data = get_headers()
                             continue
                     break
-        
+
+        print('--------------------------------------------------------------------------------------------------------------------')
         i = 0
-        listLength = len(idList)
-        breakOutFlag = False
-        while i < listLength:
+        while i <= 9:
+
             while True:
                 try:
-                    u2 = f"https://2captcha.com/res.php?key={API_KEY}&action=get&id={idList[each]}&json=1"
+                    u2 = f"https://2captcha.com/res.php?key={API_KEY}&action=get&id={playerLst[i]['request_id']}&json=1"
                     r2 = s.get(u2)
-                    if r2.json().get("status") == 1:
+                    if r2.json().get("status") == 1: 
+                        id_val = playerLst[i]['request_id']
                         form_tokon = r2.json().get("request")
-                        tokenList.append(form_tokon)
-                        print('acquired token for: ' + playerLst[each]['player name'])
-                        print(type(form_tokon))
+                        playerLst[i]['form_token'] = form_tokon
+                        print(f"ACQUIRED TOKEN FOR {playerLst[i]['player name']}")
                         i += 1
-                        idList.remove(idList[i])
-                        listLength = len(idList)
-                        if i >= listLength:
-                            i = 0
-                        break
                     else:
-                        print(f"Token for {playerLst[each]['player name']} not ready yet")
-                        pass
-                    if time.time() - startTime > 59:
-                        breakOutFlag = True
-                        break
-                except:
-                    print('FAILED GETTING TOKEN - RETRYING....')
-                    continue
+                        #print(f"Token for {each['player name']} not ready yet")
+                        playerLst.append(playerLst.pop(playerLst.index(playerLst[i])))
+                except Exception as e:
+                    print(e)
                 break
             
-            if breakOutFlag:
+            elapsed_time = time.time() - startTime
+            if elapsed_time > 60:
                 break
 
         
@@ -218,14 +208,18 @@ try:
                 if doubleCheck:
                     print('placing new buy order for ' + playerLst[each]['player name'])
                 else:
-                    print(playerLst[each])
+                    print(playerLst[each]['player name'])
                 
                 attempts = 0
                 while True:
                     try:
+                        driver.get(playerLst[each]['URL'])
+                        time.sleep(2)
+                        wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
+                        driver.execute_script(wirte_tokon_js)
                         stubsBefore = getStubsAmount(data)
-                        authToken = authList[each]
-                        data = placeBuyOrder(playerLst[each]['URL'],costList[each], tokenList[each], authToken, stubsBefore, data)
+                        # authToken = authList[each]
+                        data = placeBuyOrder(playerLst[each]['URL'], playerLst[each]['buy amount'], playerLst[each]['form_token'], playerLst[each]['auth token'], stubsBefore, data)
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -247,10 +241,7 @@ try:
                     try:
                         sellableBefore = getTotalSellable(playerLst[each]['URL'], data)
                         authToken = authList[each]
-                        data = placeSellOrder(playerLst[each]['URL'], costList[each], tokenList[each], authToken, sellableBefore, data)
-                       # if (sellableBefore == sellableAfter) and (sellableAfter != 0):
-                       #     print("TOKEN EXPIRED FOR " + playerLst[each]['player name'])
-                       #     failedOrderList.append(playerLst[each])
+                        data = placeSellOrder(playerLst[each]['URL'], playerLst[each]['sell amount'], tokenList[each], authToken, sellableBefore, data)
 
                     except:
                         attempts += 1
@@ -278,16 +269,15 @@ try:
         
         return data
     
-    def placeBuyOrder(playerURL, buyAmount, form_token, authTokenList, stubsBefore, data):
+    def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data):
         i = 0
-        formData = {'authenticity_token': authTokenList[i], 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
+        formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
         sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
         stubsAfter = getStubsAmount(data)
         while stubsBefore == stubsAfter:
             i += 1
             if i == 4:
                 i = 0
-            authToken = authTokenList[i]
             formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
             sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
             stubsAfter = getStubsAmount(data)
@@ -319,7 +309,7 @@ try:
 
     def getOpenBuyOrdersList(data):
         buyOrders = []
-        openOrdersPage = s.get('https://mlb23.theshow.com/orders/buy_orders', headers= data)
+        openOrdersPage = s.get(base_path + 'orders/buy_orders', headers= data)
         soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
 
         try:
@@ -346,7 +336,7 @@ try:
     def getOpenSellOrdersList(data):
         sellOrders = []
         try:
-            openOrdersPage = s.get('https://mlb23.theshow.com/orders/sell_orders', headers= data)
+            openOrdersPage = s.get(base_path + 'orders/sell_orders', headers= data)
             soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
             ordersList = soup.find('tbody')
             openOrder = ordersList.find_all('tr')
@@ -384,7 +374,7 @@ try:
         attempts = 0
         while True:
             try:
-                completedPage = s.get('https://mlb23.theshow.com/orders/completed_orders', headers= currentHeaders)
+                completedPage = s.get(base_path + 'orders/completed_orders', headers= currentHeaders)
 
                 soup = BeautifulSoup(completedPage.text, 'html.parser')
                 totalCompletedOrdersPages = soup.find('div', {'class': 'pagination'})
@@ -409,7 +399,7 @@ try:
             attempts = 0
             while True:
                 try:
-                    completedPage = s.get('https://mlb23.theshow.com/orders/completed_orders?page='+str(each)+'&', headers= currentHeaders)
+                    completedPage = s.get(base_path + 'orders/completed_orders?page='+str(each)+'&', headers= currentHeaders)
                     soup = BeautifulSoup(completedPage.text, 'html.parser')
                     playerOrderInfo = soup.find('tbody')
                     playerOrderInfo = playerOrderInfo.find_all('tr')
@@ -483,20 +473,19 @@ try:
 
         print('DONE EXECUTING SELL ORDERS')
         return currentHeaders
-        #time.sleep(60)
 
     print(getStubsAmount(headers))
 
 
     browser = uc.Chrome()
-    browser.get('https://mlb23.theshow.com/community_market')
+    browser.get(base_path + 'community_market')
 
     time.sleep(5)
 
     #specify which card series you want to search for
 
     cardSeriesLink = input('Enter Link of Card Criteria: ')
-    cardSeriesBase = 'https://mlb23.theshow.com/community_market'
+    cardSeriesBase = base_path + 'community_market'
     cardSeriesFilter = 'ma' + cardSeriesLink.strip(cardSeriesBase+'?page=')
 
     cardSeries = s.get(cardSeriesLink, headers = headers)
@@ -507,7 +496,8 @@ try:
     totalPagesFound = int(soup.find('h3').text.strip()[-1])
     print(totalPagesFound)
 
-    headers = doSellOrders(headers)
+    #headers = doSellOrders(headers)
+    headers = get_headers()
 
     while True:
         try:
@@ -517,7 +507,7 @@ try:
 
             headers = get_headers()
 
-            results = requests.get('https://mlb23.theshow.com/apis/listings?type=equipment&rarity=gold&min_best_buy_price=1').json()
+            results = requests.get(base_path + 'apis/listings?type=equipment&rarity=gold&min_best_buy_price=1').json()
             results = results['listings']
 
             for x in results:
@@ -528,7 +518,7 @@ try:
                 sellAmount = int(x['best_sell_price']) - 10
                 profit = int((sellAmount) * .9) - buyAmount
                 uuid = x['item']['uuid']
-                link = f"https://mlb23.theshow.com/items/{uuid}"
+                link = base_path + f"items/{uuid}"
 
                 listingsDict['player name'] = requestName
                 listingsDict['buy amount'] = buyAmount
@@ -570,7 +560,7 @@ try:
             headers = doSellOrders(headers)
 
             openBuyOrders = getOpenBuyOrdersList(headers)
-            browser.get('https://mlb23.theshow.com/orders/buy_orders')
+            browser.get(base_path + 'orders/buy_orders')
             time.sleep(3)
             playerList = []
             for each in openBuyOrders:
@@ -615,7 +605,7 @@ try:
                             
             while True:
                 try:
-                    browser.get('https://mlb23.theshow.com/orders/sell_orders')
+                    browser.get(base_path + 'orders/sell_orders')
                 except:
                     continue
                 break
