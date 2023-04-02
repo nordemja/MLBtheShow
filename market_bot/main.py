@@ -1,9 +1,10 @@
 import requests
 import traceback
-from bs4 import BeautifulSoup
 import time
 import json
+import re
 import undetected_chromedriver as uc
+from bs4 import BeautifulSoup
 from playsound import playsound
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -46,17 +47,32 @@ try:
         return int(stubsAmount)
 
     def getBuyAmount(playerURL, data, old_buy_amount):
+        amount_lst = []
         x = s.get(playerURL, headers= data)
         soup = BeautifulSoup(x.text, 'html.parser')
-        buyAmount = int(soup.find('input', {'name': 'price'}).get('value'))
-        return buyAmount
+        buyAmountNew = soup.find_all('input', {'name': 'price'})
+        for x in buyAmountNew:
+            val = str(x).split(" ")[-1]
+            prop = val.split("=")
+            if prop[0] == "value":
+                amount = int(re.findall(r'"([^"]*)"', prop[1])[0])
+                amount_lst.append(amount)
+        returnval = min(amount_lst)
+        return returnval
 
     def getSellAmount(playerURL, data, old_buy_amount):
+        amount_lst = []
         x = s.get(playerURL, headers= data)
         soup = BeautifulSoup(x.text, 'html.parser')
         sellAmount = soup.find_all('input', {'name': 'price'})
-        sellAmount = int(sellAmount[0].get('value'))
-        return sellAmount
+        for x in sellAmount:
+            val = str(x).split(" ")[-1]
+            prop = val.split("=")
+            if prop[0] == "value":
+                amount = int(re.findall(r'"([^"]*)"', prop[1])[0])
+                amount_lst.append(amount)
+        returnval = max(amount_lst)
+        return returnval
 
     def getBuyAuthToken(playerURL, data):
         buyAuthList = []
@@ -96,6 +112,7 @@ try:
     def Solver(playerLst, driver, order, data, doubleCheck):
         authList = []
         failedOrderList = []
+        readyList = []
         for each in playerLst:
             while True:
                 try:
@@ -132,7 +149,7 @@ try:
                 while True:
                     try:
                         orderAmount = getBuyAmount(each['URL'], data, each['buy amount'])
-                        each['buy amount NEW'] = orderAmount
+                        each['buy amount'] = orderAmount
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -188,9 +205,9 @@ try:
                         form_tokon = r2.json().get("request")
                         playerLst[i]['form_token'] = form_tokon
                         print(f"ACQUIRED TOKEN FOR {playerLst[i]['player name']}")
+                        readyList.append(playerLst[i])
                         i += 1
                     else:
-                        #print(f"Token for {each['player name']} not ready yet")
                         playerLst.append(playerLst.pop(playerLst.index(playerLst[i])))
                 except Exception as e:
                     print(e)
@@ -201,25 +218,22 @@ try:
                 break
 
         
-        for each in range(0,len(playerLst)):
+        for each in range(0,len(readyList)):
             if order == "buy":
                 if doubleCheck:
-                    print('placing new buy order for ' + playerLst[each]['player name'])
+                    print('placing new buy order for ' + readyList[each]['player name'])
                 else:
-                    print(playerLst[each]['player name'])
+                    print(readyList[each]['player name'])
                 
                 attempts = 0
                 while True:
                     try:
-                        driver.get(playerLst[each]['URL'])
-                        time.sleep(2)
+                        driver.get(readyList[each]['URL'])
                         wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
                         driver.execute_script(wirte_tokon_js)
                         stubsBefore = getStubsAmount(data)
-                        # print(playerLst[each]['buy amount'])
-                        # print(playerLst[each]['buy amount NEW'])
-                        # print('---------------------')
-                        data = placeBuyOrder(playerLst[each]['URL'], playerLst[each]['buy amount'], playerLst[each]['form_token'], playerLst[each]['auth token'], stubsBefore, data)
+                        print(readyList[each]['buy amount'])
+                        data = placeBuyOrder(readyList[each]['URL'], readyList[each]['buy amount'], readyList[each]['form_token'], readyList[each]['auth token'], stubsBefore, data)
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -270,18 +284,15 @@ try:
         return data
     
     def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data):
-        formData = {'authenticity_token': authToken[1], 'price': buyAmount, 'g-recaptcha-response': form_token}
-        sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
-        print(sendPost)
-        # stubsAfter = getStubsAmount(data)
-        # while stubsBefore == stubsAfter:
-        #     i += 1
-        #     if i == 4:
-        #         i = 0
-        #     formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': form_token}
-        #     sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
-        #     stubsAfter = getStubsAmount(data)
-        # print(sendPost)
+        for each in authToken:
+            formData = {'authenticity_token': each, 'price': buyAmount, 'g-recaptcha-response': form_token}
+            sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
+            stubsAfter = getStubsAmount(data)
+
+            if stubsBefore != stubsAfter:
+                print(sendPost)
+                break
+
         return data
 
     def placeSellOrder(playerURL, sellAmount, form_token, authTokenList, sellableBefore, data):
@@ -496,7 +507,7 @@ try:
     totalPagesFound = int(soup.find('h3').text.strip()[-1])
     print(totalPagesFound)
 
-    #headers = doSellOrders(headers)
+    headers = doSellOrders(headers)
     headers = get_headers()
 
     while True:
