@@ -33,7 +33,7 @@ try:
         newCookie = results.headers['Set-Cookie'].split(';')[0]
         tempHeaders = headers['cookie'].split(';')
         tempHeaders[1] = newCookie
-        headers['cookie'] = tempHeaders[0]+';'+tempHeaders[1]+';'+tempHeaders[2]
+        #headers['cookie'] = tempHeaders[0]+';'+tempHeaders[1]+';'+tempHeaders[2]
 
         newHeaders = json.dumps(headers)
         filename = 'C:\\Users\\justi\\OneDrive\\Documents\\Python Programming\\MLBtheShow\\headers.json'
@@ -46,7 +46,7 @@ try:
         stubsAmount = soup.find('div', {'class': 'well stubs'}).text.strip().replace('Stubs Balance\n\n', '').replace(',','').replace('Wallet\n','')
         return int(stubsAmount)
 
-    def getBuyAmount(playerURL, data, old_buy_amount):
+    def getBuyAmount(playerURL, data):
         amount_lst = []
         x = s.get(playerURL, headers= data)
         soup = BeautifulSoup(x.text, 'html.parser')
@@ -60,7 +60,7 @@ try:
         returnval = min(amount_lst)
         return returnval
 
-    def getSellAmount(playerURL, data, old_buy_amount):
+    def getSellAmount(playerURL, data):
         amount_lst = []
         x = s.get(playerURL, headers= data)
         soup = BeautifulSoup(x.text, 'html.parser')
@@ -148,7 +148,7 @@ try:
                 attempts = 0
                 while True:
                     try:
-                        orderAmount = getBuyAmount(each['URL'], data, each['buy amount'])
+                        orderAmount = getBuyAmount(each['URL'], data)
                         each['buy amount'] = orderAmount
                     except:
                         attempts += 1
@@ -165,7 +165,7 @@ try:
                 while True:
                     try:
                         authToken = getSellAuthToken(each['URL'], data)
-                        authList.append(authToken)
+                        each['auth token'] = authToken
                     except:
                         attempts += 1
                         if attempts == 5:
@@ -195,7 +195,7 @@ try:
 
         print('--------------------------------------------------------------------------------------------------------------------')
         i = 0
-        while i <= 9:
+        while i < len(playerLst):
 
             while True:
                 try:
@@ -250,12 +250,16 @@ try:
                     print('placing new sell order for ' + playerLst[each]['player name'])
                 else:
                     print(playerLst[each]['player name'])
+
                 attempts = 0
                 while True:
                     try:
-                        sellableBefore = getTotalSellable(playerLst[each]['URL'], data)
-                        authToken = authList[each]
-                        data = placeSellOrder(playerLst[each]['URL'], playerLst[each]['sell amount'], tokenList[each], authToken, sellableBefore, data)
+                        driver.get(readyList[each]['URL'])
+                        wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
+                        driver.execute_script(wirte_tokon_js)
+                        #sellableBefore = getTotalSellable(readyList[each]['URL'], data)
+                        sellableBefore = 1
+                        data = placeSellOrder(readyList[each]['URL'], readyList[each]['sell amount'], readyList[each]['form_token'], readyList[each]['auth token'], sellableBefore, data)
 
                     except:
                         attempts += 1
@@ -284,12 +288,15 @@ try:
         return data
     
     def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data):
+        i = 0
         for each in authToken:
             formData = {'authenticity_token': each, 'price': buyAmount, 'g-recaptcha-response': form_token}
             sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
             stubsAfter = getStubsAmount(data)
 
             if stubsBefore != stubsAfter:
+                print('i = ' + str(i))
+                i += 1
                 print(sendPost)
                 break
 
@@ -297,25 +304,35 @@ try:
 
     def placeSellOrder(playerURL, sellAmount, form_token, authTokenList, sellableBefore, data):
         i = 0
-        if i == 4:
-            i = 0
-        formData = {'authenticity_token': authTokenList[i], 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
-        sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
-        sellableAfter = getTotalSellable(playerURL,data)
-        while sellableBefore == sellableAfter:
-            i += 1
-            authToken = authTokenList[i]
-            formData = {'authenticity_token': authToken, 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
+        for each in authTokenList:
+            formData = {'authenticity_token': each, 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
             sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
-            sellableAfter = getTotalSellable(playerURL, data)
-        print(sendPost)
+            print(sendPost)
+            # sellableAfter = getTotalSellable(playerURL,data)
+            # if sellableAfter != sellableBefore:
+            #     print(sellableAfter)
+            #     print('i = ' + str(i))
+            #     i += 1
+            #     print(sendPost)
+            #     break
+
+        # while sellableBefore == sellableAfter:
+        #     i += 1
+        #     authToken = authTokenList[i]
+        #     formData = {'authenticity_token': authToken, 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
+        #     sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
+        #     sellableAfter = getTotalSellable(playerURL, data)
+        # print(sendPost)
         return data
     
     def getTotalSellable(playerURL, data):
-        playerPage = s.get(playerURL, headers= data)
-        soup = BeautifulSoup(playerPage.text, 'html.parser')
-        totalSellable = soup.find_all('div', {'class': 'well'})[4].text.strip()[-1]
-        return int(totalSellable)
+        try:
+            playerPage = s.get(playerURL, headers= data)
+            soup = BeautifulSoup(playerPage.text, 'html.parser')
+            totalSellable = soup.find_all('div', {'class': 'well'})[4].text.strip()[-1]
+            return int(totalSellable)
+        except Exception as e:
+            print(e)
 
 
     def getOpenBuyOrdersList(data):
