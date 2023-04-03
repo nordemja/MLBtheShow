@@ -306,22 +306,14 @@ try:
         for each in authTokenList:
             formData = {'authenticity_token': each, 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
             sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
-            print(sendPost)
-            # sellableAfter = getTotalSellable(playerURL,data)
-            # if sellableAfter != sellableBefore:
-            #     print(sellableAfter)
-            #     print('i = ' + str(i))
-            #     i += 1
-            #     print(sendPost)
-            #     break
+            sellableAfter = getTotalSellable(playerURL,data)
+            if sellableAfter != sellableBefore:
+                 print(sellableAfter)
+                 print('i = ' + str(i))
+                 i += 1
+                 print(sendPost)
+                 break
 
-        # while sellableBefore == sellableAfter:
-        #     i += 1
-        #     authToken = authTokenList[i]
-        #     formData = {'authenticity_token': authToken, 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
-        #     sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
-        #     sellableAfter = getTotalSellable(playerURL, data)
-        # print(sendPost)
         return data
     
     def getTotalSellable(playerURL, data):
