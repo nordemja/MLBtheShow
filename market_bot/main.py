@@ -257,8 +257,7 @@ try:
                         driver.get(readyList[each]['URL'])
                         wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
                         driver.execute_script(wirte_tokon_js)
-                        #sellableBefore = getTotalSellable(readyList[each]['URL'], data)
-                        sellableBefore = 1
+                        sellableBefore = getTotalSellable(readyList[each]['URL'], data)
                         data = placeSellOrder(readyList[each]['URL'], readyList[each]['sell amount'], readyList[each]['form_token'], readyList[each]['auth token'], sellableBefore, data)
 
                     except:
