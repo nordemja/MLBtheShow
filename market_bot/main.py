@@ -4,277 +4,268 @@ import time
 import json
 import re
 import undetected_chromedriver as uc
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from playsound import playsound
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import TimeoutException
-from webdriver_manager.chrome import ChromeDriverManager
+from tools import get_new_browser_session
 
 error_sound_path = 'error_sound.mp3'
 headers_path = 'headers.json'
 base_path = "https://mlb23.theshow.com/"
+data_sitekey = '6Leg5z4aAAAAABNstVp47FWPfKuOWeOtaGDayE6R'
+API_KEY = "d912946a33a658ddf683e126d8551d07"
 
 try:
     #header information to authenticate into account
 
-    def get_headers():
-        filename = 'headers.json'
-        with open(filename) as f:
-            headers = json.load(f)
-        return headers
+    # def get_headers():
+    #     filename = 'headers.json'
+    #     with open(filename) as f:
+    #         headers = json.load(f)
+    #     return headers
 
     headers = get_headers()
     s = requests.Session()
 
-    def create_new_headers(playerLink, headers):
-        results = requests.get(playerLink,headers=headers)
-        newCookie = results.headers['Set-Cookie'].split(';')[0]
-        tempHeaders = headers['cookie'].split(';')
-        tempHeaders[1] = newCookie
-        #headers['cookie'] = tempHeaders[0]+';'+tempHeaders[1]+';'+tempHeaders[2]
-
-        newHeaders = json.dumps(headers)
-        filename = 'C:\\Users\\justi\\OneDrive\\Documents\\Python Programming\\MLBtheShow\\headers.json'
-        with open(filename, 'w') as outfile:
-            outfile.write(newHeaders)
-
-    def getStubsAmount(data):
-        stubsAmount = s.get(base_path + 'dashboard', headers= data)
-        soup = BeautifulSoup(stubsAmount.text, 'html.parser')
-        stubsAmount = soup.find('div', {'class': 'well stubs'}).text.strip().replace('Stubs Balance\n\n', '').replace(',','').replace('Wallet\n','')
-        return int(stubsAmount)
-
-    def getBuyAmount(playerURL, data):
-        amount_lst = []
-        x = s.get(playerURL, headers= data)
-        soup = BeautifulSoup(x.text, 'html.parser')
-        buyAmountNew = soup.find_all('input', {'name': 'price'})
-        for x in buyAmountNew:
-            val = str(x).split(" ")[-1]
-            prop = val.split("=")
-            if prop[0] == "value":
-                amount = int(re.findall(r'"([^"]*)"', prop[1])[0])
-                amount_lst.append(amount)
-        returnval = min(amount_lst)
-        return returnval
-
-    def getSellAmount(playerURL, data):
-        amount_lst = []
-        x = s.get(playerURL, headers= data)
-        soup = BeautifulSoup(x.text, 'html.parser')
-        sellAmount = soup.find_all('input', {'name': 'price'})
-        for x in sellAmount:
-            val = str(x).split(" ")[-1]
-            prop = val.split("=")
-            if prop[0] == "value":
-                amount = int(re.findall(r'"([^"]*)"', prop[1])[0])
-                amount_lst.append(amount)
-        returnval = max(amount_lst)
-        return returnval
-
-    def getBuyAuthToken(playerURL, data):
-        buyAuthList = []
-        pageRequest = s.get(playerURL, headers= data)
-        soup = BeautifulSoup(pageRequest.text, 'html.parser')
-        buyForm = soup.find_all('input', {'name': 'authenticity_token'})
-        for each in buyForm:
-            buyAuthList.append(each.get('value'))
-        return buyAuthList
-
-    def getSellAuthToken(playerURL, data):
-        sellAuthList = []
-        pageRequest = s.get(playerURL, headers= data)
-        soup = BeautifulSoup(pageRequest.text, 'html.parser')
-        sellForm = soup.find_all('input', {'name': 'authenticity_token'})
-        for each in sellForm:
-            sellAuthList.append(each.get('value'))
-        return sellAuthList
-
-    API_KEY = "d912946a33a658ddf683e126d8551d07"
-    data_sitekey = '6Leg5z4aAAAAABNstVp47FWPfKuOWeOtaGDayE6R'
-
-    # def doRecaptchaBuy(playerURL, authToken, buyAmount, recaptchaToken, data):
-    #     formData = {'authenticity_token': authToken, 'price': buyAmount + 10, 'g-recaptcha-response': str(recaptchaToken)}
-    #     sendPost = s.post(playerURL+'/create_buy_order', formData, headers= data)
-    #     print(sendPost)
-    #     return 1
-
-    # def doRecaptchaSell(playerURL, authToken, sellAmount, recaptchaToken, data):
-    #     formData = {'authenticity_token': authToken, 'price': sellAmount - 10, 'g-recaptcha-response': str(recaptchaToken)}
-    #     sendPost = s.post(playerURL+'/create_sell_order', formData, headers= data)
-    #     print(sendPost)
-    #     return 1
-
-    # the below "Solver" function can be credited to 
-    # https://github.com/AiWorkshop/Selenium-Project/blob/master/part10-reCaptchaV2.py
-    def Solver(playerLst, driver, order, data, doubleCheck):
-        authList = []
-        failedOrderList = []
-        readyList = []
-        for each in playerLst:
-            while True:
-                try:
-                    u1 = f"https://2captcha.com/in.php?key={API_KEY}&method=userrecaptcha&googlekey={data_sitekey}&pageurl={each['URL']}&json=1&invisible=1"
-                    r1 = s.get(u1)
-                    requestID = int(r1.json().get('request'))
-                    each['request_id'] = requestID
-                except:
-                    print("FAILED SENDING TOKEN - TRYING AGAIN....")
-                    continue
-                break
-        startTime = time.time()
-        
-        #NEED HEADERS CHECK IN AUTH TOKEN AND AMOUNT FUNCTIONS
-        for each in playerLst:
-            if order == 'buy':
-                attempts = 0
-                while True:
-                    try:
-                        authTokenList = getBuyAuthToken(each['URL'], data)
-                        each['auth token'] = authTokenList
-                    except:
-                        attempts += 1
-                        if attempts == 5:
-                            playsound(error_sound_path)
-                            print(str(get_headers())+'\n')
-                            input('Enter new headers in JSON file 1: ')
-                            attempts = 0
-                            data = get_headers()
-                            continue
-                    break
-                
-                attempts = 0
-                while True:
-                    try:
-                        orderAmount = getBuyAmount(each['URL'], data)
-                        each['buy amount'] = orderAmount
-                    except:
-                        attempts += 1
-                        if attempts == 5:
-                            playsound(error_sound_path)
-                            print(str(get_headers())+'\n')
-                            input('Enter new headers in JSON file 2: ')
-                            attempts = 0
-                            data = get_headers()
-                            continue
-                    break
-            elif order == 'sell':
-                attempts = 0
-                while True:
-                    try:
-                        authToken = getSellAuthToken(each['URL'], data)
-                        each['auth token'] = authToken
-                    except:
-                        attempts += 1
-                        if attempts == 5:
-                            playsound(error_sound_path)
-                            print(str(get_headers())+'\n')
-                            input('Enter new headers in JSON file 3: ')
-                            attempts = 0
-                            data = get_headers()
-                            continue
-                    break
-                
-                attempts = 0
-                while True:
-                    try:
-                        orderAmount = getSellAmount(each['URL'], data)
-                        each['sell amount'] = orderAmount
-                    except:
-                        attempts += 1
-                        if attempts == 5:
-                            playsound(error_sound_path)
-                            print(str(get_headers())+'\n')
-                            input('Enter new headers in JSON file 4: ')
-                            attempts = 0
-                            data = get_headers()
-                            continue
-                    break
-
-        print('--------------------------------------------------------------------------------------------------------------------')
-        i = 0
-        while i < len(playerLst):
-
-            while True:
-                try:
-                    u2 = f"https://2captcha.com/res.php?key={API_KEY}&action=get&id={playerLst[i]['request_id']}&json=1"
-                    r2 = s.get(u2)
-                    if r2.json().get("status") == 1: 
-                        form_tokon = r2.json().get("request")
-                        playerLst[i]['form_token'] = form_tokon
-                        print(f"ACQUIRED TOKEN FOR {playerLst[i]['player name']}")
-                        readyList.append(playerLst[i])
-                        i += 1
-                    else:
-                        playerLst.append(playerLst.pop(playerLst.index(playerLst[i])))
-                except Exception as e:
-                    print(e)
-                break
+    # def create_new_headers(session, headers):
+    #     tempHeaders = headers['cookie'].split(';')
+    #     new_cookie = ""
+    #     for each in range(len(tempHeaders)):
+    #         if "_tsn_session" in tempHeaders[each]:
+    #             tempHeaders[each] = tempHeaders[each].split("=")[0] + "=" + session
             
-            elapsed_time = time.time() - startTime
-            if elapsed_time > 60:
-                break
+    #         new_cookie += tempHeaders[each] + ";"
+
+    #     new_cookie = new_cookie[:-1] + "" 
+    #     headers['cookie'] = new_cookie
+
+    #     newHeaders = json.dumps(headers)
+    #     filename = 'headers.json'
+    #     with open(filename, 'w') as outfile:
+    #         outfile.write(newHeaders)
+
+    # def getStubsAmount(data):
+    #     stubsAmount = s.get(base_path + 'dashboard', headers= data)
+    #     soup = BeautifulSoup(stubsAmount.text, 'html.parser')
+    #     stubsAmount = soup.find('div', {'class': 'well stubs'}).text.strip().replace('Stubs Balance\n\n', '').replace(',','').replace('Wallet\n','')
+    #     return int(stubsAmount)
+
+    # def getBuyAmount(playerURL, data):
+    #     amount_lst = []
+    #     x = s.get(playerURL, headers= data)
+    #     soup = BeautifulSoup(x.text, 'html.parser')
+    #     buyAmountNew = soup.find_all('input', {'name': 'price'})
+    #     for x in buyAmountNew:
+    #         val = str(x).split(" ")[-1]
+    #         prop = val.split("=")
+    #         if prop[0] == "value":
+    #             amount = int(re.findall(r'"([^"]*)"', prop[1])[0])
+    #             amount_lst.append(amount)
+    #     returnval = min(amount_lst)
+    #     return returnval
+
+    # def getSellAmount(playerURL, data):
+    #     amount_lst = []
+    #     x = s.get(playerURL, headers= data)
+    #     soup = BeautifulSoup(x.text, 'html.parser')
+    #     sellAmount = soup.find_all('input', {'name': 'price'})
+    #     for x in sellAmount:
+    #         val = str(x).split(" ")[-1]
+    #         prop = val.split("=")
+    #         if prop[0] == "value":
+    #             amount = int(re.findall(r'"([^"]*)"', prop[1])[0])
+    #             amount_lst.append(amount)
+    #     returnval = max(amount_lst)
+    #     return returnval
+
+    # def getBuyAuthToken(playerURL, data):
+    #     buyAuthList = []
+    #     pageRequest = s.get(playerURL, headers= data)
+    #     soup = BeautifulSoup(pageRequest.text, 'html.parser')
+    #     buyForm = soup.find_all('input', {'name': 'authenticity_token'})
+    #     for each in buyForm:
+    #         buyAuthList.append(each.get('value'))
+    #     return buyAuthList
+
+    # def getSellAuthToken(playerURL, data):
+    #     sellAuthList = []
+    #     pageRequest = s.get(playerURL, headers= data)
+    #     soup = BeautifulSoup(pageRequest.text, 'html.parser')
+    #     sellForm = soup.find_all('input', {'name': 'authenticity_token'})
+    #     for each in sellForm:
+    #         sellAuthList.append(each.get('value'))
+    #     return sellAuthList
+
+    # # the below "Solver" function can be credited to 
+    # # https://github.com/AiWorkshop/Selenium-Project/blob/master/part10-reCaptchaV2.py
+    # def Solver(playerLst, driver, order, data, doubleCheck):
+    #     authList = []
+    #     failedOrderList = []
+    #     readyList = []
+    #     for each in playerLst:
+    #         while True:
+    #             try:
+    #                 u1 = f"https://2captcha.com/in.php?key={API_KEY}&method=userrecaptcha&googlekey={data_sitekey}&pageurl={each['URL']}&json=1&invisible=1"
+    #                 r1 = s.get(u1)
+    #                 requestID = int(r1.json().get('request'))
+    #                 each['request_id'] = requestID
+    #             except:
+    #                 print("FAILED SENDING TOKEN - TRYING AGAIN....")
+    #                 continue
+    #             break
+    #     startTime = time.time()
+        
+    #     #NEED HEADERS CHECK IN AUTH TOKEN AND AMOUNT FUNCTIONS
+    #     for each in playerLst:
+    #         if order == 'buy':
+    #             attempts = 0
+    #             while True:
+    #                 try:
+    #                     authTokenList = getBuyAuthToken(each['URL'], data)
+    #                     each['auth token'] = authTokenList
+    #                 except:
+    #                     attempts += 1
+    #                     if attempts == 5:
+    #                         playsound(error_sound_path)
+    #                         session = get_new_browser_session(cardSeriesLink, browser)
+    #                         create_new_headers(session, data)
+    #                         attempts = 0
+    #                         data = get_headers()
+    #                         continue
+    #                 break
+                
+    #             attempts = 0
+    #             while True:
+    #                 try:
+    #                     orderAmount = getBuyAmount(each['URL'], data)
+    #                     each['buy amount'] = orderAmount
+    #                 except:
+    #                     attempts += 1
+    #                     if attempts == 5:
+    #                         playsound(error_sound_path)
+    #                         session = get_new_browser_session(cardSeriesLink, browser)
+    #                         create_new_headers(session, data)
+    #                         attempts = 0
+    #                         data = get_headers()
+    #                         continue
+    #                 break
+    #         elif order == 'sell':
+    #             attempts = 0
+    #             while True:
+    #                 try:
+    #                     authToken = getSellAuthToken(each['URL'], data)
+    #                     each['auth token'] = authToken
+    #                 except:
+    #                     attempts += 1
+    #                     if attempts == 5:
+    #                         playsound(error_sound_path)
+    #                         session = get_new_browser_session(cardSeriesLink, browser)
+    #                         create_new_headers(session, data)
+    #                         attempts = 0
+    #                         data = get_headers()
+    #                         continue
+    #                 break
+                
+    #             attempts = 0
+    #             while True:
+    #                 try:
+    #                     orderAmount = getSellAmount(each['URL'], data)
+    #                     each['sell amount'] = orderAmount
+    #                 except:
+    #                     attempts += 1
+    #                     if attempts == 5:
+    #                         playsound(error_sound_path)
+    #                         session = get_new_browser_session(cardSeriesLink, browser)
+    #                         create_new_headers(session, data)
+    #                         attempts = 0
+    #                         data = get_headers()
+    #                         continue
+    #                 break
+
+    #     print('--------------------------------------------------------------------------------------------------------------------')
+    #     i = 0
+    #     while i < len(playerLst):
+
+    #         while True:
+    #             try:
+    #                 u2 = f"https://2captcha.com/res.php?key={API_KEY}&action=get&id={playerLst[i]['request_id']}&json=1"
+    #                 r2 = s.get(u2)
+    #                 if r2.json().get("status") == 1: 
+    #                     form_tokon = r2.json().get("request")
+    #                     playerLst[i]['form_token'] = form_tokon
+    #                     print(f"ACQUIRED TOKEN FOR {playerLst[i]['player name']}")
+    #                     readyList.append(playerLst[i])
+    #                     i += 1
+    #                 else:
+    #                     playerLst.append(playerLst.pop(playerLst.index(playerLst[i])))
+    #             except Exception as e:
+    #                 print(e)
+    #             break
+            
+    #         elapsed_time = time.time() - startTime
+    #         if elapsed_time > 60:
+    #             break
 
         
-        for each in range(0,len(readyList)):
-            if order == "buy":
-                if doubleCheck:
-                    print('placing new buy order for ' + readyList[each]['player name'])
-                else:
-                    print(readyList[each]['player name'])
+    #     for each in range(0,len(readyList)):
+    #         if order == "buy":
+    #             if doubleCheck:
+    #                 print('placing new buy order for ' + readyList[each]['player name'])
+    #             else:
+    #                 print(readyList[each]['player name'])
                 
-                attempts = 0
-                while True:
-                    try:
-                        driver.get(readyList[each]['URL'])
-                        wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
-                        driver.execute_script(wirte_tokon_js)
-                        stubsBefore = getStubsAmount(data)
-                        print(readyList[each]['buy amount'])
-                        data = placeBuyOrder(readyList[each]['URL'], readyList[each]['buy amount'], readyList[each]['form_token'], readyList[each]['auth token'], stubsBefore, data)
-                    except:
-                        attempts += 1
-                        if attempts == 5:
-                            playsound(error_sound_path)
-                            print(str(get_headers())+'\n')
-                            input('Enter new headers in JSON file 5: ')
-                            attempts = 0
-                            data = get_headers()
-                            continue
-                    break
+    #             attempts = 0
+    #             while True:
+    #                 try:
+    #                     driver.get(readyList[each]['URL'])
+    #                     wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
+    #                     driver.execute_script(wirte_tokon_js)
+    #                     stubsBefore = getStubsAmount(data)
+    #                     data = placeBuyOrder(readyList[each]['URL'], readyList[each]['buy amount'], readyList[each]['form_token'], readyList[each]['auth token'], stubsBefore, data)
+    #                 except:
+    #                     attempts += 1
+    #                     if attempts == 5:
+    #                         playsound(error_sound_path)
+    #                         session = get_new_browser_session(cardSeriesLink, browser)
+    #                         create_new_headers(session, data)
+    #                         attempts = 0
+    #                         data = get_headers()
+    #                         continue
+    #                 break
 
-            if order == "sell":
-                if doubleCheck:
-                    print('placing new sell order for ' + playerLst[each]['player name'])
-                else:
-                    print(playerLst[each]['player name'])
+    #         if order == "sell":
+    #             if doubleCheck:
+    #                 print('placing new sell order for ' + playerLst[each]['player name'])
+    #             else:
+    #                 print(playerLst[each]['player name'])
 
-                attempts = 0
-                while True:
-                    try:
-                        driver.get(readyList[each]['URL'])
-                        wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
-                        driver.execute_script(wirte_tokon_js)
-                        sellableBefore = getTotalSellable(readyList[each]['URL'], data)
-                        data = placeSellOrder(readyList[each]['URL'], readyList[each]['sell amount'], readyList[each]['form_token'], readyList[each]['auth token'], sellableBefore, data)
+    #             attempts = 0
+    #             while True:
+    #                 try:
+    #                     driver.get(readyList[each]['URL'])
+    #                     wirte_tokon_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_tokon}";'
+    #                     driver.execute_script(wirte_tokon_js)
+    #                     sellableBefore = getTotalSellable(readyList[each]['URL'], data)
+    #                     data = placeSellOrder(readyList[each]['URL'], readyList[each]['sell amount'], readyList[each]['form_token'], readyList[each]['auth token'], sellableBefore, data)
 
-                    except:
-                        attempts += 1
-                        if attempts == 5:
-                            playsound(error_sound_path)
-                            print(str(get_headers())+'\n')
-                            input('Enter new headers in JSON file 6: ')
-                            attempts = 0
-                            data = get_headers()
-                        continue
-                    break
+    #                 except:
+    #                     attempts += 1
+    #                     if attempts == 5:
+    #                         playsound(error_sound_path)
+    #                         session = get_new_browser_session(cardSeriesLink, browser)
+    #                         create_new_headers(session, data)
+    #                         attempts = 0
+    #                         data = get_headers()
+    #                     continue
+    #                 break
 
-        if len(failedOrderList) > 0:
-            Solver(failedOrderList, driver, 'sell', data, doubleCheck)
+    #     if len(failedOrderList) > 0:
+    #         Solver(failedOrderList, driver, 'sell', data, doubleCheck)
 
-        return data
+    #     return data
 
 
     def doRecaptcha(playerLst, webDriver, order, data, doubleCheck):
@@ -287,30 +278,29 @@ try:
         return data
     
     def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data):
-        i = 0
+
         for each in authToken:
             formData = {'authenticity_token': each, 'price': buyAmount, 'g-recaptcha-response': form_token}
             sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
             stubsAfter = getStubsAmount(data)
 
             if stubsBefore != stubsAfter:
-                print('i = ' + str(i))
-                i += 1
+                print('i = ' + str(authToken.index(each)))
+                print("length of authToken = " +str(len(authToken)))
                 print(sendPost)
                 break
 
         return data
 
     def placeSellOrder(playerURL, sellAmount, form_token, authTokenList, sellableBefore, data):
-        i = 0
         for each in authTokenList:
-            formData = {'authenticity_token': each, 'price': sellAmount - 10, 'g-recaptcha-response': form_token}
+            formData = {'authenticity_token': each, 'price': sellAmount - 5, 'g-recaptcha-response': form_token}
             sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
             sellableAfter = getTotalSellable(playerURL,data)
             if sellableAfter != sellableBefore:
                  print(sellableAfter)
-                 print('i = ' + str(i))
-                 i += 1
+                 print('i = ' + str(authTokenList.index(each)))
+                 print("length of authToken = " +str(len(authTokenList)))
                  print(sendPost)
                  break
 
@@ -403,8 +393,8 @@ try:
                 attempts += 1
                 if attempts == 5:
                     playsound(error_sound_path)
-                    print(str(get_headers())+'\n')
-                    input('Enter new headers in JSON file 7: ')
+                    session = get_new_browser_session(cardSeriesLink, browser)
+                    create_new_headers(session, currentHeaders)
                     currentHeaders = get_headers()
                     attempts = 0
                     continue
@@ -426,8 +416,8 @@ try:
                     attempts += 1
                     if attempts == 5:
                         playsound(error_sound_path)
-                        print(str(get_headers())+'\n')
-                        input('Enter new headers in JSON file 8: ')
+                        session = get_new_browser_session(cardSeriesLink, browser)
+                        create_new_headers(session, currentHeaders)
                         currentHeaders = get_headers()
                         attempts = 0
                         continue
@@ -464,9 +454,8 @@ try:
                         if attempts == 5:
                             if orderState == 1:
                                 break
-                            playsound(error_sound_path)
-                            print(str(get_headers())+'\n')
-                            input('Enter new headers in JSON file 9: ')
+                            session = get_new_browser_session(cardSeriesLink, browser)
+                            create_new_headers(session, currentHeaders)
                             currentHeaders = get_headers()
                             attempts = 0
                             continue
@@ -487,7 +476,6 @@ try:
 
         if len(sellPlayerList) > 0:
             print('\n')
-            create_new_headers(sellPlayerLink, currentHeaders)
             currentHeaders = doRecaptcha(sellPlayerList,browser,'sell',currentHeaders, False)
 
         print('DONE EXECUTING SELL ORDERS')
@@ -495,8 +483,10 @@ try:
 
     print(getStubsAmount(headers))
 
+    desired_capabilities = DesiredCapabilities.CHROME
+    desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
+    browser = uc.Chrome(desired_capabilities=desired_capabilities, version_main=112)
 
-    browser = uc.Chrome()
     browser.get(base_path + 'community_market')
 
     time.sleep(5)
@@ -504,16 +494,21 @@ try:
     #specify which card series you want to search for
 
     cardSeriesLink = input('Enter Link of Card Criteria: ')
-    cardSeriesBase = base_path + 'community_market'
-    cardSeriesFilter = 'ma' + cardSeriesLink.strip(cardSeriesBase+'?page=')
+    # cardSeriesBase = base_path + 'community_market'
+    # cardSeriesFilter = 'ma' + cardSeriesLink.strip(cardSeriesBase+'?page=')
 
     cardSeries = s.get(cardSeriesLink, headers = headers)
+
+    browser.get(cardSeriesLink)
+
+
 
     #get total pages in card series
 
     soup = BeautifulSoup(cardSeries.text, 'html.parser')
     totalPagesFound = int(soup.find('h3').text.strip()[-1])
     print(totalPagesFound)
+
 
     headers = doSellOrders(headers)
     headers = get_headers()
@@ -526,15 +521,15 @@ try:
 
             headers = get_headers()
 
-            results = requests.get(base_path + 'apis/listings?type=equipment&rarity=gold&min_best_buy_price=1').json()
+            results = requests.get(base_path + 'apis/listings?max_best_buy_price=20000&min_best_buy_price=3000&series_id=1337').json()
             results = results['listings']
 
             for x in results:
                 listingsDict = {}
 
                 requestName = x['listing_name']
-                buyAmount = int(x['best_buy_price']) + 10
-                sellAmount = int(x['best_sell_price']) - 10
+                buyAmount = int(x['best_buy_price']) + 5
+                sellAmount = int(x['best_sell_price']) - 5
                 profit = int((sellAmount) * .9) - buyAmount
                 uuid = x['item']['uuid']
                 link = base_path + f"items/{uuid}"
@@ -592,8 +587,8 @@ try:
                         attempts += 1
                         if attempts == 5: 
                             playsound(error_sound_path)
-                            print(str(get_headers())+'\n')
-                            input('Enter new headers in JSON file 11: ')
+                            session = get_new_browser_session(cardSeriesLink, browser)
+                            create_new_headers(session, headers)
                             headers = get_headers()
                             attempts = 0
                             continue
@@ -608,7 +603,7 @@ try:
                     while True:
                         try:
                             print("cancelling order for " + each['Name'])
-                            browser.find_element_by_xpath('//*[@id="'+each['Order ID']+'"]/td[1]/form/button').click()
+                            browser.find_element("xpath", '//*[@id="'+each['Order ID']+'"]/td[1]/form/button').click()
                             browser.switch_to.alert.accept()
                             playerList.append(playerDict)
                             
@@ -644,8 +639,8 @@ try:
                             attempts += 1
                             if attempts == 5:
                                 playsound(error_sound_path)
-                                print(str(get_headers())+'\n')
-                                input('Enter new headers in JSON file 13: ')
+                                session = get_new_browser_session(cardSeriesLink, browser)
+                                create_new_headers(session, headers)
                                 headers = get_headers()
                                 attempts = 0
                             else:
@@ -660,7 +655,7 @@ try:
                         print(each["Posted Price"])
                         print(currentSellAmount)
                         try:
-                            browser.find_element_by_xpath('//*[@id="'+each["Order ID"]+'"]/td[1]/form/button').click()
+                            browser.find_element("xpath",'//*[@id="'+each["Order ID"]+'"]/td[1]/form/button').click()
                             browser.switch_to.alert.accept()
                         except:
                             pass
@@ -684,4 +679,3 @@ try:
 except Exception:
     print(traceback.format_exc())
     playsound(error_sound_path)
-    
