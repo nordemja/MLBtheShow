@@ -13,6 +13,7 @@ from place_orders import doSellOrders
 from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
 from solver import doRecaptcha
 
+cardSeriesLink = input('Enter Link of Card Criteria: ')
 error_sound_path = 'error_sound.mp3'
 headers_path = 'headers.json'
 base_path = "https://mlb23.theshow.com/"
@@ -35,7 +36,7 @@ try:
 
     #specify which card series you want to search for
 
-    cardSeriesLink = input('Enter Link of Card Criteria: ')
+    
     # cardSeriesBase = base_path + 'community_market'
     # cardSeriesFilter = 'ma' + cardSeriesLink.strip(cardSeriesBase+'?page=')
 
