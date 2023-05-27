@@ -1,25 +1,60 @@
-import json
+import requests
+from bs4 import BeautifulSoup
+from main import base_path
 
-def get_headers():
-    filename = 'headers.json'
-    with open(filename) as f:
-        headers = json.load(f)
-    return headers
+def getOpenBuyOrdersList(data):
+    buyOrders = []
+    openOrdersPage = requests.get(base_path + 'orders/buy_orders', headers= data)
+    soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
 
-headers = get_headers()
+    try:
+        ordersList = soup.find('tbody')
+        openOrder = ordersList.find_all('tr')
+        for each in openOrder:
+            playerDict = {}
+            playerName = each.contents[3].text.strip()
+            postedPrice = each.contents[5].text.strip().replace(',','')
+            orderID = each.get('id')
+            playerURL = each.find('a')
+            playerURL = 'https://mlb23.theshow.com' + playerURL['href'].lstrip().rstrip()
+            playerDict['Name'] = playerName
+            playerDict['Posted Price'] = postedPrice
+            playerDict['URL'] = playerURL
+            playerDict['Order ID'] = orderID
+            buyOrders.append(playerDict)
+        
+        return buyOrders
+    except AttributeError:
+        return buyOrders
 
-def create_new_headers(session, headers):
-    tempHeaders = headers['cookie'].split(';')
-    for each in range(len(tempHeaders)):
-        if "_tsn_session" in tempHeaders[each]:
-            tempHeaders[each] = tempHeaders[each].split("=")[0] + "=" + session
-            
 
-    headers['cookie'] = tempHeaders
+def getOpenSellOrdersList(data):
+    sellOrders = []
+    try:
+        openOrdersPage = requests.get(base_path + 'orders/sell_orders', headers= data)
+        soup = BeautifulSoup(openOrdersPage.text, 'html.parser')
+        ordersList = soup.find('tbody')
+        openOrder = ordersList.find_all('tr')
+        for each in openOrder:
+            playerDict = {}
+            playerName = each.contents[3].text.strip()
+            postedPrice = each.contents[5].text.strip().replace(',','')
+            orderID = each.get('id')
+            playerURL = each.find('a')
+            playerURL = 'https://mlb23.theshow.com' + playerURL['href'].lstrip().rstrip()
+            playerDict['Name'] = playerName
+            playerDict['Posted Price'] = postedPrice
+            playerDict['URL'] = playerURL
+            playerDict['Order ID'] = orderID
+            sellOrders.append(playerDict)
 
-    newHeaders = json.dumps(headers)
-    filename = 'headers.json'
-    with open(filename, 'w') as outfile:
-        outfile.write(newHeaders)
+        return sellOrders
 
-create_new_headers("JUSTIN", headers)
+    except AttributeError:
+        return sellOrders
+
+
+def getTotalOpenOrders(data):
+    buyOrderList = getOpenBuyOrdersList(data)
+    sellOrderList = getOpenSellOrdersList(data)
+    return buyOrderList + sellOrderList

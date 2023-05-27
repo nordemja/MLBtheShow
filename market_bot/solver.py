@@ -5,21 +5,22 @@ from auth_token import getBuyAuthToken, getSellAuthToken
 from tools import get_new_browser_session
 from headers import create_new_headers, get_headers
 from amounts import getBuyAmount, getSellAmount, getStubsAmount
+from place_orders import getTotalSellable, placeBuyOrder, placeSellOrder
 from playsound import playsound
 
 
-def doRecaptcha(playerLst, webDriver, order, data, doubleCheck):
+def doRecaptcha(playerLst, webDriver, order, data, doubleCheck, cardSeriesLink, browser):
 
     if order == 'buy':
-        data = Solver(playerLst, webDriver, order, data, doubleCheck)
+        data = Solver(playerLst, webDriver, order, data, doubleCheck, cardSeriesLink, browser)
     else:
-        data = Solver(playerLst, webDriver, order, data, doubleCheck)
+        data = Solver(playerLst, webDriver, order, data, doubleCheck, cardSeriesLink, browser)
     
     return data
 
 # the below "Solver" function can be credited to 
 # https://github.com/AiWorkshop/Selenium-Project/blob/master/part10-reCaptchaV2.py
-def Solver(playerLst, driver, order, data, doubleCheck):
+def Solver(playerLst, driver, order, data, doubleCheck, cardSeriesLink, browser):
     authList = []
     failedOrderList = []
     readyList = []
