@@ -113,7 +113,7 @@ def doSellOrders(currentHeaders, cardSeriesLink, browser):
 
     if len(sellPlayerList) > 0:
         print('\n')
-        currentHeaders = doRecaptcha(sellPlayerList, browser,'sell',currentHeaders, False)
+        currentHeaders = doRecaptcha(sellPlayerList, browser,'sell',currentHeaders, False, cardSeriesLink, browser)
 
     print('DONE EXECUTING SELL ORDERS')
     return currentHeaders

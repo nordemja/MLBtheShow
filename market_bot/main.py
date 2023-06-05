@@ -11,27 +11,29 @@ from amounts import getStubsAmount, getBuyAmount, getSellAmount
 from headers import get_headers, create_new_headers
 from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
 from solver import doRecaptcha, doSellOrders
-from globals import base_path, error_sound_path, API_KEY, data_sitekey, headers_path
-
+from globals import base_path, error_sound_path
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 try:
-    cardSeriesLink = input('Enter Link of Card Criteria: ')
 
-    headers = get_headers()
-
-    print(getStubsAmount(headers))
+    init_headers = get_headers()
 
     desired_capabilities = DesiredCapabilities.CHROME
     desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
-    browser = uc.Chrome(desired_capabilities=desired_capabilities, version_main=112)
+    browser = ChromeDriverManager().install()
+    browser = uc.Chrome(desired_capabilities=desired_capabilities)
 
     browser.get(base_path + 'community_market')
 
-    time.sleep(5)
-
     #specify which card series you want to search for
+    cardSeriesLink = input('Enter Link of Card Criteria: ')
+    session = get_new_browser_session(cardSeriesLink, browser)
+    create_new_headers(session, init_headers)
+    
+    headers = get_headers()
 
+    print(getStubsAmount(headers))
     
     # cardSeriesBase = base_path + 'community_market'
     # cardSeriesFilter = 'ma' + cardSeriesLink.strip(cardSeriesBase+'?page=')
