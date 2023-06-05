@@ -18,11 +18,12 @@ from webdriver_manager.chrome import ChromeDriverManager
 try:
 
     init_headers = get_headers()
+    print(getStubsAmount(init_headers))
 
     desired_capabilities = DesiredCapabilities.CHROME
     desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
-    browser = ChromeDriverManager().install()
-    browser = uc.Chrome(desired_capabilities=desired_capabilities)
+    # browser = ChromeDriverManager().install()
+    browser = uc.Chrome(desired_capabilities=desired_capabilities, version_main=114)
 
     browser.get(base_path + 'community_market')
 
@@ -60,7 +61,7 @@ try:
 
             headers = get_headers()
 
-            results = requests.get(base_path + 'apis/listings?max_best_buy_price=20000&min_best_buy_price=3000&series_id=1337').json()
+            results = requests.get(base_path + 'apis/listings?max_best_buy_price=25000&min_best_buy_price=3000&series_id=1337').json()
             results = results['listings']
 
             for x in results:
