@@ -1,7 +1,7 @@
 import requests
 import re
 from bs4 import BeautifulSoup
-from main import base_path
+from globals import base_path
 
 def getStubsAmount(data):
     stubsAmount = requests.get(base_path + 'dashboard', headers= data)

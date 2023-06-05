@@ -1,4 +1,3 @@
-cardSeriesLink = input('Enter Link of Card Criteria: ')
 error_sound_path = 'error_sound.mp3'
 headers_path = 'headers.json'
 base_path = "https://mlb23.theshow.com/"

@@ -1,12 +1,123 @@
 import requests
 import time
-from main import API_KEY, data_sitekey, error_sound_path
+from globals import API_KEY, data_sitekey, error_sound_path, base_path
 from auth_token import getBuyAuthToken, getSellAuthToken
 from tools import get_new_browser_session
 from headers import create_new_headers, get_headers
 from amounts import getBuyAmount, getSellAmount, getStubsAmount
-from place_orders import getTotalSellable, placeBuyOrder, placeSellOrder
+from get_total_sellable import getTotalSellable
+from place_orders import placeBuyOrder, placeSellOrder
 from playsound import playsound
+from bs4 import BeautifulSoup
+
+
+def doSellOrders(currentHeaders, cardSeriesLink, browser):
+
+    print("Executing sell orders....")
+    currentHeaders = get_headers()
+
+    #get data from completed orders table
+    attempts = 0
+    while True:
+        try:
+            completedPage = requests.get(base_path + 'orders/completed_orders', headers= currentHeaders)
+
+            soup = BeautifulSoup(completedPage.text, 'html.parser')
+            totalCompletedOrdersPages = soup.find('div', {'class': 'pagination'})
+            totalCompletedOrdersPages = totalCompletedOrdersPages.find('a')
+            testVar =  int(totalCompletedOrdersPages.text)
+        except:
+            attempts += 1
+            if attempts == 5:
+                playsound(error_sound_path)
+                session = get_new_browser_session(cardSeriesLink, browser)
+                create_new_headers(session, currentHeaders)
+                currentHeaders = get_headers()
+                attempts = 0
+                continue
+            continue
+        break
+
+    sellPlayerList = []
+    for each in range(1, testVar+1):
+        print("PAGE: " + str(each))
+        cardsSellable = 1
+        attempts = 0
+        while True:
+            try:
+                completedPage = requests.get(base_path + 'orders/completed_orders?page='+str(each)+'&', headers= currentHeaders)
+                soup = BeautifulSoup(completedPage.text, 'html.parser')
+                playerOrderInfo = soup.find('tbody')
+                playerOrderInfo = playerOrderInfo.find_all('tr')
+            except:
+                attempts += 1
+                if attempts == 5:
+                    playsound(error_sound_path)
+                    session = get_new_browser_session(cardSeriesLink, browser)
+                    create_new_headers(session, currentHeaders)
+                    currentHeaders = get_headers()
+                    attempts = 0
+                    continue
+                continue
+            break
+        
+        for each in playerOrderInfo:
+            cardsSellable = 1
+            attempts = 0
+            playerDict = {}
+            while True:
+                try:
+                #loop through completed orders page and get time order was completed as datetime object
+
+                    orderState = 0
+                    requestName = each.contents[1].text.strip()
+                    orderType = each.contents[3].text.strip().split()[0]
+                    if orderType == 'Bought':
+                        sellPlayerLink = each.find('a')
+                        sellPlayerLink = 'https://mlb23.theshow.com' + sellPlayerLink['href'].lstrip().rstrip()
+                        sellableBefore = getTotalSellable(sellPlayerLink, currentHeaders)
+                        if sellableBefore > 0:
+                            playerDict['player name'] = requestName
+                            playerDict['URL'] = sellPlayerLink
+                            sellPlayerList.append(playerDict)
+                            print(requestName)
+                                    
+                        else:
+                            cardsSellable = 0
+                            
+        
+                except:
+                    attempts += 1
+                    if attempts == 5:
+                        if orderState == 1:
+                            break
+                        session = get_new_browser_session(cardSeriesLink, browser)
+                        create_new_headers(session, currentHeaders)
+                        currentHeaders = get_headers()
+                        attempts = 0
+                        continue
+                    else:
+                        if orderState == 1:
+                            break
+                        print("Failed " + str(attempts))
+                        continue
+                    
+                break
+
+            if cardsSellable == 0:
+                break
+
+        #Break out of page loop
+        if cardsSellable == 0:
+            break
+
+    if len(sellPlayerList) > 0:
+        print('\n')
+        currentHeaders = doRecaptcha(sellPlayerList, browser,'sell',currentHeaders, False)
+
+    print('DONE EXECUTING SELL ORDERS')
+    return currentHeaders
+
 
 
 def doRecaptcha(playerLst, webDriver, order, data, doubleCheck, cardSeriesLink, browser):

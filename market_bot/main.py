@@ -9,18 +9,14 @@ from selenium.common.exceptions import NoSuchElementException
 from tools import get_new_browser_session
 from amounts import getStubsAmount, getBuyAmount, getSellAmount
 from headers import get_headers, create_new_headers
-from place_orders import doSellOrders
 from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
-from solver import doRecaptcha
+from solver import doRecaptcha, doSellOrders
+from globals import base_path, error_sound_path, API_KEY, data_sitekey, headers_path
 
-cardSeriesLink = input('Enter Link of Card Criteria: ')
-error_sound_path = 'error_sound.mp3'
-headers_path = 'headers.json'
-base_path = "https://mlb23.theshow.com/"
-data_sitekey = '6Leg5z4aAAAAABNstVp47FWPfKuOWeOtaGDayE6R'
-API_KEY = "d912946a33a658ddf683e126d8551d07"
+
 
 try:
+    cardSeriesLink = input('Enter Link of Card Criteria: ')
 
     headers = get_headers()
 

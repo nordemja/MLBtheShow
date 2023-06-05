@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from main import base_path
+from globals import base_path
 
 def getOpenBuyOrdersList(data):
     buyOrders = []
