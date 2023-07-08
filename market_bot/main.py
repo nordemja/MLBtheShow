@@ -18,7 +18,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 try:
 
     init_headers = get_headers()
-    print(getStubsAmount(init_headers))
 
     desired_capabilities = DesiredCapabilities.CHROME
     desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
@@ -61,15 +60,15 @@ try:
 
             headers = get_headers()
 
-            results = requests.get(base_path + 'apis/listings?max_best_buy_price=25000&min_best_buy_price=3000&series_id=1337').json()
+            results = requests.get(base_path + 'apis/listings?max_best_buy_price=25000&set_name=SET 2').json()
             results = results['listings']
 
             for x in results:
                 listingsDict = {}
 
                 requestName = x['listing_name']
-                buyAmount = int(x['best_buy_price']) + 5
-                sellAmount = int(x['best_sell_price']) - 5
+                buyAmount = int(x['best_buy_price']) + 25
+                sellAmount = int(x['best_sell_price']) - 25
                 profit = int((sellAmount) * .9) - buyAmount
                 uuid = x['item']['uuid']
                 link = base_path + f"items/{uuid}"
