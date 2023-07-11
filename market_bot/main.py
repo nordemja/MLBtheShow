@@ -36,9 +36,8 @@ try:
 
     print(getStubsAmount(headers))
     
-    # cardSeriesBase = base_path + 'community_market'
-    # cardSeriesFilter = 'ma' + cardSeriesLink.strip(cardSeriesBase+'?page=')
 
+    cardSeriesFilter = cardSeriesLink.strip(base_path+'/community_market?page=')
     cardSeries = requests.get(cardSeriesLink, headers = headers)
 
     browser.get(cardSeriesLink)
@@ -61,26 +60,58 @@ try:
 
             headers = get_headers()
 
-            results = requests.get(base_path + 'apis/listings?max_best_buy_price=35000&set_name=SET 2').json()
-            results = results['listings']
+            for each in range(1, totalPagesFound+1):
+                while True:
+                    try:
 
-            for x in results:
-                listingsDict = {}
+                        print(base_path+'/community_market?page='+str(each)+"&"+cardSeriesFilter)
+                        searchReults = requests.get(base_path+'/community_market?page='+str(each)+"&"+cardSeriesFilter, headers = headers)
+                        soup = BeautifulSoup(searchReults.text, 'html.parser')
+                        table = soup.find('tbody')
+                        results = table.find_all('tr')
 
-                requestName = x['listing_name']
-                buyAmount = int(x['best_buy_price']) + 25
-                sellAmount = int(x['best_sell_price']) - 25
-                profit = int((sellAmount) * .9) - buyAmount
-                uuid = x['item']['uuid']
-                link = base_path + f"items/{uuid}"
+                        for x in results:
+                            listingsDict = {}
 
-                listingsDict['player name'] = requestName
-                listingsDict['buy amount'] = buyAmount
-                listingsDict['sell amount'] = sellAmount
-                listingsDict['profit'] = profit
-                listingsDict['URL'] = link
-                listingsDict['sellable'] = getTotalSellable(link, headers)
-                listings.append(listingsDict)
+                            requestName =  x.contents[5].text.strip()
+                            buyAmount = x.contents[11].text.strip()
+                            sellAmount = x.contents[9].text.strip()
+                            profit = int((sellAmount) * .9) - buyAmount
+                            uuid = x.find('a')
+                            link = base_path + uuid['href'].lstrip().rstrip().strip('fave')
+
+                            listingsDict['player name'] = requestName
+                            listingsDict['buy amount'] = buyAmount
+                            listingsDict['sell amount'] = sellAmount
+                            listingsDict['profit'] = profit
+                            listingsDict['URL'] = link
+                            listingsDict['sellable'] = getTotalSellable(link, headers)
+                            listings.append(listingsDict)
+
+                    except:
+                        print("break")
+                    break
+
+            # results = requests.get(base_path + 'apis/listings?max_best_buy_price=35000&set_name=SET 2').json()
+            # results = results['listings']
+
+            # for x in results:
+            #     listingsDict = {}
+
+            #     requestName = x['listing_name']
+            #     buyAmount = int(x['best_buy_price']) + 25
+            #     sellAmount = int(x['best_sell_price']) - 25
+            #     profit = int((sellAmount) * .9) - buyAmount
+            #     uuid = x['item']['uuid']
+            #     link = base_path + f"items/{uuid}"
+
+                # listingsDict['player name'] = requestName
+                # listingsDict['buy amount'] = buyAmount
+                # listingsDict['sell amount'] = sellAmount
+                # listingsDict['profit'] = profit
+                # listingsDict['URL'] = link
+                # listingsDict['sellable'] = getTotalSellable(link, headers)
+                # listings.append(listingsDict)
 
             #sort by highest profit
             listings = sorted(listings, key = lambda i: i['profit'])
