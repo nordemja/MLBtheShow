@@ -10,6 +10,7 @@ from tools import get_new_browser_session
 from amounts import getStubsAmount, getBuyAmount, getSellAmount
 from headers import get_headers, create_new_headers
 from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
+from get_total_sellable import getTotalSellable
 from solver import doRecaptcha, doSellOrders
 from globals import base_path, error_sound_path
 from webdriver_manager.chrome import ChromeDriverManager
@@ -21,8 +22,8 @@ try:
 
     desired_capabilities = DesiredCapabilities.CHROME
     desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
-    browser = ChromeDriverManager().install()
-    browser = uc.Chrome(desired_capabilities=desired_capabilities)
+    # browser = ChromeDriverManager().install()
+    browser = uc.Chrome(desired_capabilities=desired_capabilities, version_main=114)
 
     browser.get(base_path + 'community_market')
 
@@ -60,15 +61,15 @@ try:
 
             headers = get_headers()
 
-            results = requests.get(base_path + 'apis/listings?max_best_buy_price=20000&min_best_buy_price=3000&series_id=1337').json()
+            results = requests.get(base_path + 'apis/listings?max_best_buy_price=35000&set_name=SET 2').json()
             results = results['listings']
 
             for x in results:
                 listingsDict = {}
 
                 requestName = x['listing_name']
-                buyAmount = int(x['best_buy_price']) + 5
-                sellAmount = int(x['best_sell_price']) - 5
+                buyAmount = int(x['best_buy_price']) + 25
+                sellAmount = int(x['best_sell_price']) - 25
                 profit = int((sellAmount) * .9) - buyAmount
                 uuid = x['item']['uuid']
                 link = base_path + f"items/{uuid}"
@@ -78,6 +79,7 @@ try:
                 listingsDict['sell amount'] = sellAmount
                 listingsDict['profit'] = profit
                 listingsDict['URL'] = link
+                listingsDict['sellable'] = getTotalSellable(link, headers)
                 listings.append(listingsDict)
 
             #sort by highest profit
@@ -98,6 +100,10 @@ try:
 
                 if any(d['Name'] == each['player name'] for d in openOrderList):
                     print(each['player name'])
+                    pass
+                if each['sellable'] > 0:
+                    print(each['player name'])
+                    print("CARD ALREADY OWNED AND READY TO BE SOLD")
                     pass
                 else:
                     if currentOpenBuyOrders == 10 or openListingLength >= 25:
