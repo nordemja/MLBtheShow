@@ -10,6 +10,7 @@ from tools import get_new_browser_session
 from amounts import getStubsAmount, getBuyAmount, getSellAmount
 from headers import get_headers, create_new_headers
 from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
+from get_total_sellable import getTotalSellable
 from solver import doRecaptcha, doSellOrders
 from globals import base_path, error_sound_path
 from webdriver_manager.chrome import ChromeDriverManager
@@ -60,7 +61,7 @@ try:
 
             headers = get_headers()
 
-            results = requests.get(base_path + 'apis/listings?max_best_buy_price=25000&set_name=SET 2').json()
+            results = requests.get(base_path + 'apis/listings?max_best_buy_price=35000&set_name=SET 2').json()
             results = results['listings']
 
             for x in results:
@@ -78,6 +79,7 @@ try:
                 listingsDict['sell amount'] = sellAmount
                 listingsDict['profit'] = profit
                 listingsDict['URL'] = link
+                listingsDict['sellable'] = getTotalSellable(link, headers)
                 listings.append(listingsDict)
 
             #sort by highest profit
@@ -98,6 +100,10 @@ try:
 
                 if any(d['Name'] == each['player name'] for d in openOrderList):
                     print(each['player name'])
+                    pass
+                if each['sellable'] > 0:
+                    print(each['player name'])
+                    print("CARD ALREADY OWNED AND READY TO BE SOLD")
                     pass
                 else:
                     if currentOpenBuyOrders == 10 or openListingLength >= 25:
