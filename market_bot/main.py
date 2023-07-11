@@ -101,6 +101,8 @@ try:
                 if any(d['Name'] == each['player name'] for d in openOrderList):
                     print(each['player name'])
                     pass
+
+                #TypeError: '>' not supported between instances of 'NoneType' and 'int'
                 if each['sellable'] > 0:
                     print(each['player name'])
                     print("CARD ALREADY OWNED AND READY TO BE SOLD")
