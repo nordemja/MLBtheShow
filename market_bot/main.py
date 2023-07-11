@@ -73,20 +73,26 @@ try:
                         for x in results:
                             listingsDict = {}
 
-                            requestName =  x.contents[5].text.strip()
-                            buyAmount = x.contents[11].text.strip()
-                            sellAmount = x.contents[9].text.strip()
-                            profit = int((sellAmount) * .9) - buyAmount
-                            uuid = x.find('a')
-                            link = base_path + uuid['href'].lstrip().rstrip().strip('fave')
+                            for y in x.contents:
+                                print(y.text.strip())
+                                
+                            print("----------------------------------------------------------------------------------")
 
-                            listingsDict['player name'] = requestName
-                            listingsDict['buy amount'] = buyAmount
-                            listingsDict['sell amount'] = sellAmount
-                            listingsDict['profit'] = profit
-                            listingsDict['URL'] = link
-                            listingsDict['sellable'] = getTotalSellable(link, headers)
-                            listings.append(listingsDict)
+
+                            # requestName =  x.contents[5].text.strip()
+                            # buyAmount = x.contents[11].text.strip()
+                            # sellAmount = x.contents[9].text.strip()
+                            # profit = int((sellAmount) * .9) - buyAmount
+                            # uuid = x.find('a')
+                            # link = base_path + uuid['href'].lstrip().rstrip().strip('fave')
+
+                            # listingsDict['player name'] = requestName
+                            # listingsDict['buy amount'] = buyAmount
+                            # listingsDict['sell amount'] = sellAmount
+                            # listingsDict['profit'] = profit
+                            # listingsDict['URL'] = link
+                            # listingsDict['sellable'] = getTotalSellable(link, headers)
+                            # listings.append(listingsDict)
 
                     except:
                         print("break")
