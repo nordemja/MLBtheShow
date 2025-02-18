@@ -10,18 +10,18 @@ def get_headers():
 
 
 def create_new_headers(session, headers):
-    tempHeaders = headers["cookie"].split(";")
+    temp_headers = headers["cookie"].split(";")
     new_cookie = ""
-    for each in range(len(tempHeaders)):
-        if "_tsn_session" in tempHeaders[each]:
-            tempHeaders[each] = tempHeaders[each].split("=")[0] + "=" + session
+    for each in range(len(temp_headers)):
+        if "_tsn_session" in temp_headers[each]:
+            temp_headers[each] = temp_headers[each].split("=")[0] + "=" + session
 
-        new_cookie += tempHeaders[each] + ";"
+        new_cookie += temp_headers[each] + ";"
 
     new_cookie = new_cookie[:-1] + ""
     headers["cookie"] = new_cookie
 
-    newHeaders = json.dumps(headers)
+    new_headers = json.dumps(headers)
     filename = "headers.json"
     with open(filename, "w") as outfile:
-        outfile.write(newHeaders)
+        outfile.write(new_headers)

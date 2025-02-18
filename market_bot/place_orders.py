@@ -6,23 +6,23 @@ from get_total_sellable import getTotalSellable
 from playsound import playsound
 
 
-def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data):
+def place_buy_order(playerURL, buyAmount, form_token, authToken, stubsBefore, data):
 
     for each in authToken:
-        formData = {
+        form_data = {
             "authenticity_token": each,
             "price": buyAmount + 25,
             "g-recaptcha-response": form_token,
         }
-        sendPost = requests.post(
-            playerURL + "/create_buy_order", formData, headers=data
+        send_post = requests.post(
+            playerURL + "/create_buy_order", form_data, headers=data
         )
 
-    stubsAfter = getStubsAmount(data)
-    if stubsBefore != stubsAfter:
+    stubs_after = getStubsAmount(data)
+    if stubsBefore != stubs_after:
         # print('i = ' + str(authToken.index(each)))
         # print("length of authToken = " +str(len(authToken)))
-        print(sendPost)
+        print(send_post)
 
     else:
         print("ORDER NOT PLACED")
@@ -30,30 +30,30 @@ def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data
     return data
 
 
-def placeSellOrder(
+def place_sell_order(
     playerURL, sellAmount, form_token, authTokenList, sellableBefore, data
 ):
     for each in authTokenList:
-        formData = {
+        form_data = {
             "authenticity_token": each,
             "price": sellAmount - 25,
             "g-recaptcha-response": form_token,
         }
-        sendPost = requests.post(
-            playerURL + "/create_sell_order", formData, headers=data
+        send_post = requests.post(
+            playerURL + "/create_sell_order", form_data, headers=data
         )
 
-    sellableAfter = getTotalSellable(playerURL, data)
+    sellable_after = getTotalSellable(playerURL, data)
 
-    if sellableAfter != sellableBefore:
-        print(sellableAfter)
+    if sellable_after != sellableBefore:
+        print(sellable_after)
         # print('i = ' + str(authTokenList.index(each)))
         # print("length of authToken = " +str(len(authTokenList)))
-        print(sendPost)
+        print(send_post)
 
     else:
-        sellableAfter == sellableBefore
-        print(sellableAfter)
+        sellable_after == sellableBefore
+        print(sellable_after)
         print("ORDER NOT PLACED")
 
     return data

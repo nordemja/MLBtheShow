@@ -28,37 +28,37 @@ try:
     browser.get(base_path + "community_market")
 
     # specify which card series you want to search for
-    cardSeriesLink = input("Enter Link of Card Criteria: ")
-    session = get_new_browser_session(cardSeriesLink, browser)
+    card_series_link = input("Enter Link of Card Criteria: ")
+    session = get_new_browser_session(card_series_link, browser)
     create_new_headers(session, init_headers)
 
     headers = get_headers()
 
     print(getStubsAmount(headers))
 
-    cardSeriesFilter = cardSeriesLink.strip(base_path + "/community_market?page=")
-    cardSeries = requests.get(cardSeriesLink, headers=headers)
+    card_series_filter = card_series_link.strip(base_path + "/community_market?page=")
+    card_series = requests.get(card_series_link, headers=headers)
 
-    browser.get(cardSeriesLink)
+    browser.get(card_series_link)
 
     # get total pages in card series
 
-    soup = BeautifulSoup(cardSeries.text, "html.parser")
-    totalPagesFound = int(soup.find("h3").text.strip()[-1])
-    print(totalPagesFound)
+    soup = BeautifulSoup(card_series.text, "html.parser")
+    total_pages_found = int(soup.find("h3").text.strip()[-1])
+    print(total_pages_found)
 
-    headers = doSellOrders(headers, cardSeriesLink, browser)
+    headers = doSellOrders(headers, card_series_link, browser)
     headers = get_headers()
 
     while True:
         try:
             # blank list of dicts to loop through to place buy order
-            openListingLength = len(getTotalOpenOrders(headers))
+            open_listing_length = len(getTotalOpenOrders(headers))
             listings = []
 
             headers = get_headers()
 
-            for each in range(1, totalPagesFound + 1):
+            for each in range(1, total_pages_found + 1):
                 while True:
                     try:
 
@@ -67,22 +67,22 @@ try:
                             + "/community_market?page="
                             + str(each)
                             + "&"
-                            + cardSeriesFilter
+                            + card_series_filter
                         )
-                        searchReults = requests.get(
+                        search_reults = requests.get(
                             base_path
                             + "/community_market?page="
                             + str(each)
                             + "&"
-                            + cardSeriesFilter,
+                            + card_series_filter,
                             headers=headers,
                         )
-                        soup = BeautifulSoup(searchReults.text, "html.parser")
+                        soup = BeautifulSoup(search_reults.text, "html.parser")
                         table = soup.find("tbody")
                         results = table.find_all("tr")
 
                         for x in results:
-                            listingsDict = {}
+                            listings_dict = {}
 
                             for y in x.contents:
                                 print(y.text.strip())
@@ -98,13 +98,13 @@ try:
                             # uuid = x.find('a')
                             # link = base_path + uuid['href'].lstrip().rstrip().strip('fave')
 
-                            # listingsDict['player name'] = requestName
-                            # listingsDict['buy amount'] = buyAmount
-                            # listingsDict['sell amount'] = sellAmount
-                            # listingsDict['profit'] = profit
-                            # listingsDict['URL'] = link
-                            # listingsDict['sellable'] = getTotalSellable(link, headers)
-                            # listings.append(listingsDict)
+                            # listings_dict['player name'] = requestName
+                            # listings_dict['buy amount'] = buyAmount
+                            # listings_dict['sell amount'] = sellAmount
+                            # listings_dict['profit'] = profit
+                            # listings_dict['URL'] = link
+                            # listings_dict['sellable'] = getTotalSellable(link, headers)
+                            # listings.append(listings_dict)
 
                     except:
                         print("break")
@@ -114,7 +114,7 @@ try:
             # results = results['listings']
 
             # for x in results:
-            #     listingsDict = {}
+            #     listings_dict = {}
 
             #     requestName = x['listing_name']
             #     buyAmount = int(x['best_buy_price']) + 25
@@ -123,31 +123,31 @@ try:
             #     uuid = x['item']['uuid']
             #     link = base_path + f"items/{uuid}"
 
-            # listingsDict['player name'] = requestName
-            # listingsDict['buy amount'] = buyAmount
-            # listingsDict['sell amount'] = sellAmount
-            # listingsDict['profit'] = profit
-            # listingsDict['URL'] = link
-            # listingsDict['sellable'] = getTotalSellable(link, headers)
-            # listings.append(listingsDict)
+            # listings_dict['player name'] = requestName
+            # listings_dict['buy amount'] = buyAmount
+            # listings_dict['sell amount'] = sellAmount
+            # listings_dict['profit'] = profit
+            # listings_dict['URL'] = link
+            # listings_dict['sellable'] = getTotalSellable(link, headers)
+            # listings.append(listings_dict)
 
             # sort by highest profit
             listings = sorted(listings, key=lambda i: i["profit"])
             listings.reverse()
 
             # place buy order for top 10 most profittable cards
-            openOrderList = getTotalOpenOrders(headers)
-            openListingLength = len(openOrderList)
-            currentOpenBuyOrders = len(getOpenBuyOrdersList(headers))
-            print("open buy orders = ", currentOpenBuyOrders)
+            open_order_list = getTotalOpenOrders(headers)
+            open_listing_length = len(open_order_list)
+            current_open_buy_orders = len(getOpenBuyOrdersList(headers))
+            print("open buy orders = ", current_open_buy_orders)
 
-            playerList = []
+            player_list = []
             players = 0
 
             for each in listings:
-                orderState = 0
+                order_state = 0
 
-                if any(d["Name"] == each["player name"] for d in openOrderList):
+                if any(d["Name"] == each["player name"] for d in open_order_list):
                     print(each["player name"])
                     pass
                 if each["sellable"] > 0:
@@ -155,34 +155,34 @@ try:
                     print("CARD ALREADY OWNED AND READY TO BE SOLD")
                     pass
                 else:
-                    if currentOpenBuyOrders == 10 or openListingLength >= 25:
+                    if current_open_buy_orders == 10 or open_listing_length >= 25:
                         break
                     print(each)
-                    playerList.append(each)
-                    currentOpenBuyOrders += 1
-                    openListingLength
+                    player_list.append(each)
+                    current_open_buy_orders += 1
+                    open_listing_length
 
             headers = doRecaptcha(
-                playerList, browser, "buy", headers, False, cardSeriesLink, browser
+                player_list, browser, "buy", headers, False, card_series_link, browser
             )
 
-            headers = doSellOrders(headers, cardSeriesLink, browser)
+            headers = doSellOrders(headers, card_series_link, browser)
 
-            openBuyOrders = getOpenBuyOrdersList(headers)
+            open_buy_orders = getOpenBuyOrdersList(headers)
             browser.get(base_path + "orders/buy_orders")
             time.sleep(3)
-            playerList = []
-            for each in openBuyOrders:
-                playerDict = {}
+            player_list = []
+            for each in open_buy_orders:
+                player_dict = {}
                 attempts = 0
                 while True:
                     try:
-                        currentPrice = getBuyAmount(each["URL"], headers)
+                        current_price = getBuyAmount(each["URL"], headers)
                     except:
                         attempts += 1
                         if attempts == 5:
                             playsound(error_sound_path)
-                            session = get_new_browser_session(cardSeriesLink, browser)
+                            session = get_new_browser_session(card_series_link, browser)
                             create_new_headers(session, headers)
                             headers = get_headers()
                             attempts = 0
@@ -192,9 +192,9 @@ try:
                             continue
                     break
 
-                if int(each["Posted Price"]) < currentPrice:
-                    playerDict["player name"] = each["Name"]
-                    playerDict["URL"] = each["URL"]
+                if int(each["Posted Price"]) < current_price:
+                    player_dict["player name"] = each["Name"]
+                    player_dict["URL"] = each["URL"]
                     while True:
                         try:
                             print("cancelling order for " + each["Name"])
@@ -203,7 +203,7 @@ try:
                                 '//*[@id="' + each["Order ID"] + '"]/td[1]/form/button',
                             ).click()
                             browser.switch_to.alert.accept()
-                            playerList.append(playerDict)
+                            player_list.append(player_dict)
 
                         except:
 
@@ -219,7 +219,7 @@ try:
                     )
 
             headers = doRecaptcha(
-                playerList, browser, "buy", headers, True, cardSeriesLink, browser
+                player_list, browser, "buy", headers, True, card_series_link, browser
             )
 
             while True:
@@ -229,23 +229,23 @@ try:
                     continue
                 break
             time.sleep(3)
-            openSellOrders = getOpenSellOrdersList(headers)
+            open_sell_orders = getOpenSellOrdersList(headers)
 
-            playerList = []
-            for each in openSellOrders:
-                playerDict = {}
-                orderState = 0
+            player_list = []
+            for each in open_sell_orders:
+                player_dict = {}
+                order_state = 0
                 attempts = 0
                 try:
                     while True:
                         try:
-                            currentSellAmount = getSellAmount(each["URL"], headers)
+                            current_sell_amount = getSellAmount(each["URL"], headers)
                         except:
                             attempts += 1
                             if attempts == 5:
                                 playsound(error_sound_path)
                                 session = get_new_browser_session(
-                                    cardSeriesLink, browser
+                                    card_series_link, browser
                                 )
                                 create_new_headers(session, headers)
                                 headers = get_headers()
@@ -254,15 +254,15 @@ try:
                                 print("Failed " + str(attempts))
                                 continue
                         break
-                    if int(each["Posted Price"]) > currentSellAmount:
-                        playerDict["player name"] = each["Name"]
-                        playerDict["URL"] = each["URL"]
-                        playerList.append(playerDict)
+                    if int(each["Posted Price"]) > current_sell_amount:
+                        player_dict["player name"] = each["Name"]
+                        player_dict["URL"] = each["URL"]
+                        player_list.append(player_dict)
                         print(
                             "Cancelling " + each["Name"] + " at " + each["Posted Price"]
                         )
                         print(each["Posted Price"])
-                        print(currentSellAmount)
+                        print(current_sell_amount)
                         try:
                             browser.find_element(
                                 "xpath",
@@ -283,10 +283,10 @@ try:
                     print("Order not found")
 
             headers = doRecaptcha(
-                playerList, browser, "sell", headers, True, cardSeriesLink, browser
+                player_list, browser, "sell", headers, True, card_series_link, browser
             )
 
-            headers = doSellOrders(headers, cardSeriesLink, browser)
+            headers = doSellOrders(headers, card_series_link, browser)
 
         except KeyboardInterrupt:
             print("STOPPING PROGRAM")
