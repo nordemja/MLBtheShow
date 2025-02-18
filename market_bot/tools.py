@@ -1,9 +1,9 @@
-
 import time
 import json
 import undetected_chromedriver as uc
 
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
 
 def get_new_browser_session(url, browser):
     session_list = []
@@ -12,8 +12,7 @@ def get_new_browser_session(url, browser):
 
     browser.get(url)
     time.sleep(3)
-    logs = browser.get_log('performance')
-
+    logs = browser.get_log("performance")
 
     # Iterates every logs and parses it using JSON
     for log in logs:
@@ -21,7 +20,7 @@ def get_new_browser_session(url, browser):
 
         # Checks if the current 'method' key has any
         # Network related value.
-        if("Network.requestWillBeSentExtraInfo" in network_log["method"]):
+        if "Network.requestWillBeSentExtraInfo" in network_log["method"]:
 
             try:
                 x = network_log["params"]["headers"]["cookie"]
@@ -35,7 +34,6 @@ def get_new_browser_session(url, browser):
 
             except:
                 pass
-
 
     print(session_list[-1])
     return session_list[-1]

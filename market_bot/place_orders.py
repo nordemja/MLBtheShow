@@ -5,11 +5,18 @@ from tools import get_new_browser_session
 from get_total_sellable import getTotalSellable
 from playsound import playsound
 
+
 def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data):
 
     for each in authToken:
-        formData = {'authenticity_token': each, 'price': buyAmount + 25, 'g-recaptcha-response': form_token}
-        sendPost = requests.post(playerURL+'/create_buy_order', formData, headers= data)
+        formData = {
+            "authenticity_token": each,
+            "price": buyAmount + 25,
+            "g-recaptcha-response": form_token,
+        }
+        sendPost = requests.post(
+            playerURL + "/create_buy_order", formData, headers=data
+        )
 
     stubsAfter = getStubsAmount(data)
     if stubsBefore != stubsAfter:
@@ -22,19 +29,28 @@ def placeBuyOrder(playerURL, buyAmount, form_token, authToken, stubsBefore, data
 
     return data
 
-def placeSellOrder(playerURL, sellAmount, form_token, authTokenList, sellableBefore, data):
-    for each in authTokenList:
-        formData = {'authenticity_token': each, 'price': sellAmount - 25, 'g-recaptcha-response': form_token}
-        sendPost = requests.post(playerURL+'/create_sell_order', formData, headers= data)
 
-    sellableAfter = getTotalSellable(playerURL,data)
+def placeSellOrder(
+    playerURL, sellAmount, form_token, authTokenList, sellableBefore, data
+):
+    for each in authTokenList:
+        formData = {
+            "authenticity_token": each,
+            "price": sellAmount - 25,
+            "g-recaptcha-response": form_token,
+        }
+        sendPost = requests.post(
+            playerURL + "/create_sell_order", formData, headers=data
+        )
+
+    sellableAfter = getTotalSellable(playerURL, data)
 
     if sellableAfter != sellableBefore:
-            print(sellableAfter)
-            # print('i = ' + str(authTokenList.index(each)))
-            # print("length of authToken = " +str(len(authTokenList)))
-            print(sendPost)
-    
+        print(sellableAfter)
+        # print('i = ' + str(authTokenList.index(each)))
+        # print("length of authToken = " +str(len(authTokenList)))
+        print(sendPost)
+
     else:
         sellableAfter == sellableBefore
         print(sellableAfter)
