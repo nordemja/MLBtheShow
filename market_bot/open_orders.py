@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from globals import base_path
 
+# CHANGE THIS TO CLASS -> CAN USE CLASS WITH ATTRIBUTES INSTEAD OF DICTIONARY
+
 
 def get_open_buy_orders_list(data):
     buy_orders = []
