@@ -6,10 +6,10 @@ class Token:
     def __init__(self, player_url, headers):
         self.player_url = player_url
         self.headers = headers
-        self.auth_token_list = []
 
     def get_sell_auth_token():
-        page_request = requests.get(self.player_url, headers=self.headers)
+        sell_auth_list = []
+        page_request = requests.get(player_url=self.player_url, headers=self.headers)
         soup = BeautifulSoup(page_request.text, "html.parser")
 
         sell_form = soup.find_all("input", {"name": "authenticity_token"})
@@ -18,6 +18,7 @@ class Token:
         return auth_token_list
 
     def get_buy_auth_token():
+        buy_auth_list = []
         page_request = requests.get(self.player_url, headers=self.headers)
         soup = BeautifulSoup(page_request.text, "html.parser")
         buy_form = soup.find_all("input", {"name": "authenticity_token"})
