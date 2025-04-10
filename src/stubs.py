@@ -1,15 +1,15 @@
 import requests
 import re
 from bs4 import BeautifulSoup
-from globals import base_path
 
 
 class Stubs:
-    def __init__(self, headers):
+    def __init__(self, base_path, headers):
+        self.base_path = base_path
         self.headers = headers
 
     def get_stubs_amount(self):
-        stubs_amount = requests.get(base_path + "dashboard", headers=self.headers)
+        stubs_amount = requests.get(self.base_path, headers=self.headers)
         soup = BeautifulSoup(stubs_amount.text, "html.parser")
         stubs_amount = (
             soup.find("div", {"class": "well stubs"})

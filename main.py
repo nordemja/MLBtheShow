@@ -1,8 +1,11 @@
-# import traceback
+import traceback
+import os
+
 # import time
 # import undetected_chromedriver as uc
 # from bs4 import BeautifulSoup
-# from playsound import playsound
+from playsound import playsound
+
 # from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 # from selenium.common.exceptions import NoSuchElementException
 # from tools import get_new_browser_session
@@ -11,43 +14,43 @@
 # from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
 # from get_total_sellable import getTotalSellable
 # from solver import doRecaptcha, doSellOrders
-from config.globals import *
+from config.globals import BASE_PATH, HEADERS_PATH, ERROR_SOUND_PATH
 
 # from webdriver_manager.chrome import ChromeDriverManager
 
-from browser_session import BrowserSession
-from market import Market
+from src.headers import get_headers
+
+from src.browser_session import BrowserSession
+from src.stubs import Stubs
+from src.market import Market
 
 
 try:
 
-    headers = get_headers()
+    error_sound_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "config", ERROR_SOUND_PATH
+    )
+    headers_file_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "config", HEADERS_PATH
+    )
 
-    browser_session = BrowserSession(base_path)
+    card_series_link = input("Enter Link of Card Criteria: ")
 
-    # market = Market
+    headers = get_headers(headers_file_path)
+    browser_session = BrowserSession(BASE_PATH)
+    browser_session.start_browser()
 
-    # browser.get(base_path + "community_market")
+    stubs = Stubs(BASE_PATH, headers)
+    market = Market(card_series_link, headers, browser_session.browser)
 
-    # # specify which card series you want to search for
-    # card_series_link = input("Enter Link of Card Criteria: ")
+    print(f"Stubs Balance: {stubs.get_stubs_amount()}")
+    total_pages_found = market.fetch_total_pages()
+    print(total_pages_found)
+
     # session = get_new_browser_session(card_series_link, browser)
     # create_new_headers(session, init_headers)
 
-    # headers = get_headers()
-
-    # print(getStubsAmount(headers))
-
-    # card_series_filter = card_series_link.strip(base_path + "/community_market?page=")
-    # card_series = requests.get(card_series_link, headers=headers)
-
     # browser.get(card_series_link)
-
-    # # get total pages in card series
-
-    # soup = BeautifulSoup(card_series.text, "html.parser")
-    # total_pages_found = int(soup.find("h3").text.strip()[-1])
-    # print(total_pages_found)
 
     # headers = doSellOrders(headers, card_series_link, browser)
     # headers = get_headers()

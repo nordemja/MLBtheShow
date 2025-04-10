@@ -1,3 +1,5 @@
 my_env/
+__pycache__/
+
 
 market_bot/headers.json
