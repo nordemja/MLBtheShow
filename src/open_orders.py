@@ -2,66 +2,44 @@ import requests
 from bs4 import BeautifulSoup
 from globals import base_path
 
-# CHANGE THIS TO CLASS -> CAN USE CLASS WITH ATTRIBUTES INSTEAD OF DICTIONARY
 
+class OpenOrders:
+    def __init__(self, open_orders_path, headers):
+        self.open_orders_path = open_orders_path
+        self.headers = headers
 
-def get_open_buy_orders_list(data):
-    buy_orders = []
-    open_orders_page = requests.get(base_path + "orders/buy_orders", headers=data)
-    soup = BeautifulSoup(open_orders_page.text, "html.parser")
+    def _get_orders(self, order_type: str):
+        order_list = []
+        url = f"{self.open_orders_path}/{order_type}"
+        response = requests.get(url, headers=self.headers)
+        soup = BeautifulSoup(response.text, "html.parser")
 
-    try:
-        orders_list = soup.find("tbody")
-        open_order = orders_list.find_all("tr")
-        for each in open_order:
-            player_dict = {}
-            player_name = each.contents[3].text.strip()
-            posted_price = each.contents[5].text.strip().replace(",", "")
-            order_id = each.get("id")
-            player_url = each.find("a")
-            player_url = (
-                "https://mlb23.theshow.com" + player_url["href"].lstrip().rstrip()
-            )
-            player_dict["Name"] = player_name
-            player_dict["Posted Price"] = posted_price
-            player_dict["URL"] = player_url
-            player_dict["Order ID"] = order_id
-            buy_orders.append(player_dict)
+        try:
+            rows = soup.find("tbody").find_all("tr")
+            for row in rows:
+                player_name = row.contents[3].text.strip()
+                posted_price = row.contents[5].text.strip().replace(",", "")
+                order_id = row.get("id")
+                player_url = "https://mlb23.theshow.com" + row.find("a")["href"].strip()
 
-        return buy_orders
-    except AttributeError:
-        return buy_orders
+                order_list.append(
+                    {
+                        "Name": player_name,
+                        "Posted Price": posted_price,
+                        "URL": player_url,
+                        "Order ID": order_id,
+                    }
+                )
+        except AttributeError:
+            pass
 
+        return order_list
 
-def get_open_sell_orders_list(data):
-    sell_orders = []
-    try:
-        open_orders_page = requests.get(base_path + "orders/sell_orders", headers=data)
-        soup = BeautifulSoup(open_orders_page.text, "html.parser")
-        orders_list = soup.find("tbody")
-        open_order = orders_list.find_all("tr")
-        for each in open_order:
-            player_dict = {}
-            player_name = each.contents[3].text.strip()
-            posted_price = each.contents[5].text.strip().replace(",", "")
-            order_id = each.get("id")
-            player_url = each.find("a")
-            player_url = (
-                "https://mlb23.theshow.com" + player_url["href"].lstrip().rstrip()
-            )
-            player_dict["Name"] = player_name
-            player_dict["Posted Price"] = posted_price
-            player_dict["URL"] = player_url
-            player_dict["Order ID"] = order_id
-            sell_orders.append(player_dict)
+    def get_buy_orders(self):
+        return self._get_orders("buy_orders")
 
-        return sell_orders
+    def get_sell_orders(self):
+        return self._get_orders("sell_orders")
 
-    except AttributeError:
-        return sell_orders
-
-
-def get_total_open_orders(data):
-    buy_order_list = get_open_buy_orders_list(data)
-    sell_order_list = get_open_sell_orders_list(data)
-    return buy_order_list + sell_order_list
+    def get_all_open_orders(self):
+        return self.get_buy_orders() + self.get_sell_orders()
