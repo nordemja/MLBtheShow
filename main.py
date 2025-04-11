@@ -14,7 +14,12 @@ from playsound import playsound
 # from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
 # from get_total_sellable import getTotalSellable
 # from solver import doRecaptcha, doSellOrders
-from config.globals import BASE_PATH, HEADERS_PATH, ERROR_SOUND_PATH
+from config.globals import (
+    COMMUNITY_MARKET_PATH,
+    COMPLETED_ORDERS_PATH,
+    HEADERS_PATH,
+    ERROR_SOUND_PATH,
+)
 
 # from webdriver_manager.chrome import ChromeDriverManager
 
@@ -23,7 +28,10 @@ from src.headers import get_headers
 from src.browser_session import BrowserSession
 from src.stubs import Stubs
 from src.market import Market
+from src.sell_orders import SellOrders
 
+# session = get_new_browser_session(card_series_link, browser)
+# create_new_headers(session, init_headers)
 
 try:
 
@@ -37,23 +45,19 @@ try:
     card_series_link = input("Enter Link of Card Criteria: ")
 
     headers = get_headers(headers_file_path)
-    browser_session = BrowserSession(BASE_PATH)
-    browser_session.start_browser()
+    browser = BrowserSession(COMMUNITY_MARKET_PATH)
+    browser.start_browser()
 
-    stubs = Stubs(BASE_PATH, headers)
-    market = Market(card_series_link, headers, browser_session.browser)
+    stubs = Stubs(COMMUNITY_MARKET_PATH, headers)
+    market = Market(card_series_link, headers, browser)
+    sell_orders = SellOrders(COMPLETED_ORDERS_PATH, card_series_link, headers, browser)
 
     print(f"Stubs Balance: {stubs.get_stubs_amount()}")
+    browser.set_page(card_series_link)
     total_pages_found = market.fetch_total_pages()
     print(total_pages_found)
 
-    # session = get_new_browser_session(card_series_link, browser)
-    # create_new_headers(session, init_headers)
-
-    # browser.get(card_series_link)
-
-    # headers = doSellOrders(headers, card_series_link, browser)
-    # headers = get_headers()
+    headers = sell_orders.execute()
 
     # while True:
     #     try:
