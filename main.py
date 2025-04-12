@@ -45,110 +45,36 @@ try:
     )
 
     card_series_link = input("Enter Link of Card Criteria: ")
+    card_series_filter = card_series_link.split("?")[1]
 
     headers = get_headers(headers_file_path)
     browser = BrowserSession(COMMUNITY_MARKET_PATH)
     browser.start_browser()
 
     stubs = Stubs(COMMUNITY_MARKET_PATH, headers)
-    market = Market(card_series_link, headers, browser)
+    market = Market(
+        COMMUNITY_MARKET_PATH, card_series_link, card_series_filter, headers
+    )
     sell_orders = SellOrders(COMPLETED_ORDERS_PATH, card_series_link, headers, browser)
     open_orders = OpenOrders(OPEN_ORDERS_PATH, headers)
 
     print(f"Stubs Balance: {stubs.get_stubs_amount()}")
     browser.set_page(card_series_link)
-    total_pages_found = market.fetch_total_pages()
-    print(total_pages_found)
+    market.fetch_total_pages()
+    print(market.total_pages_found)
 
     headers = sell_orders.execute()
 
     while True:
         try:
-            # blank list of dicts to loop through to place buy order
-            open_listing_length = len(open_orders.get_all_open_orders())
-            listings = []
-
             headers = get_headers(headers_file_path)
 
-        #         for each in range(1, total_pages_found + 1):
-        #             while True:
-        #                 try:
-
-        #                     print(
-        #                         base_path
-        #                         + "/community_market?page="
-        #                         + str(each)
-        #                         + "&"
-        #                         + card_series_filter
-        #                     )
-        #                     search_reults = requests.get(
-        #                         base_path
-        #                         + "/community_market?page="
-        #                         + str(each)
-        #                         + "&"
-        #                         + card_series_filter,
-        #                         headers=headers,
-        #                     )
-        #                     soup = BeautifulSoup(search_reults.text, "html.parser")
-        #                     table = soup.find("tbody")
-        #                     results = table.find_all("tr")
-
-        #                     for x in results:
-        #                         listings_dict = {}
-
-        #                         for y in x.contents:
-        #                             print(y.text.strip())
-
-        #                         print(
-        #                             "----------------------------------------------------------------------------------"
-        #                         )
-
-        #                         # requestName =  x.contents[5].text.strip()
-        #                         # buyAmount = x.contents[11].text.strip()
-        #                         # sellAmount = x.contents[9].text.strip()
-        #                         # profit = int((sellAmount) * .9) - buyAmount
-        #                         # uuid = x.find('a')
-        #                         # link = base_path + uuid['href'].lstrip().rstrip().strip('fave')
-
-        #                         # listings_dict['player name'] = requestName
-        #                         # listings_dict['buy amount'] = buyAmount
-        #                         # listings_dict['sell amount'] = sellAmount
-        #                         # listings_dict['profit'] = profit
-        #                         # listings_dict['URL'] = link
-        #                         # listings_dict['sellable'] = getTotalSellable(link, headers)
-        #                         # listings.append(listings_dict)
-
-        #                 except:
-        #                     print("break")
-        #                 break
-
-        #         # results = requests.get(base_path + 'apis/listings?max_best_buy_price=35000&set_name=SET 2').json()
-        #         # results = results['listings']
-
-        #         # for x in results:
-        #         #     listings_dict = {}
-
-        #         #     requestName = x['listing_name']
-        #         #     buyAmount = int(x['best_buy_price']) + 25
-        #         #     sellAmount = int(x['best_sell_price']) - 25
-        #         #     profit = int((sellAmount) * .9) - buyAmount
-        #         #     uuid = x['item']['uuid']
-        #         #     link = base_path + f"items/{uuid}"
-
-        #         # listings_dict['player name'] = requestName
-        #         # listings_dict['buy amount'] = buyAmount
-        #         # listings_dict['sell amount'] = sellAmount
-        #         # listings_dict['profit'] = profit
-        #         # listings_dict['URL'] = link
-        #         # listings_dict['sellable'] = getTotalSellable(link, headers)
-        #         # listings.append(listings_dict)
-
-        #         # sort by highest profit
-        #         listings = sorted(listings, key=lambda i: i["profit"])
-        #         listings.reverse()
+            test_listing = market.fetch_listings()
+            for x in test_listing:
+                print(x)
 
         #         # place buy order for top 10 most profittable cards
-        #         open_order_list = getTotalOpenOrders(headers)
+        #         open_order_list = open_orders.get_all_open_orders()
         #         open_listing_length = len(open_order_list)
         #         current_open_buy_orders = len(getOpenBuyOrdersList(headers))
         #         print("open buy orders = ", current_open_buy_orders)

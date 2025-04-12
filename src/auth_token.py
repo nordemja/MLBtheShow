@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 
-class Token:
+class AuthToken:
     def __init__(self, player_url, headers):
         self.player_url = player_url
         self.headers = headers

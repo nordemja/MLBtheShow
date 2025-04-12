@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-from globals import base_path
 
 
 class OpenOrders:
