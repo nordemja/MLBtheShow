@@ -15,6 +15,8 @@ from playsound import playsound
 # from get_total_sellable import getTotalSellable
 # from solver import doRecaptcha, doSellOrders
 from config.globals import (
+    ROOT_PATH,
+    BASE_API_PATH,
     COMMUNITY_MARKET_PATH,
     OPEN_ORDERS_PATH,
     COMPLETED_ORDERS_PATH,
@@ -22,12 +24,15 @@ from config.globals import (
     ERROR_SOUND_PATH,
 )
 
+from config.team_id_map import TEAM_ID_MAP
+
 # from webdriver_manager.chrome import ChromeDriverManager
 
 from src.headers import get_headers
 
 from src.browser_session import BrowserSession
 from src.stubs import Stubs
+from src.api_mapper import APIMapper
 from src.market import Market
 from src.sell_orders import SellOrders
 from src.open_orders import OpenOrders
@@ -48,18 +53,22 @@ try:
     card_series_filter = card_series_link.split("?")[1]
 
     headers = get_headers(headers_file_path)
+
     browser = BrowserSession(COMMUNITY_MARKET_PATH)
     browser.start_browser()
 
     stubs = Stubs(COMMUNITY_MARKET_PATH, headers)
-    market = Market(
-        COMMUNITY_MARKET_PATH, card_series_link, card_series_filter, headers
-    )
     sell_orders = SellOrders(COMPLETED_ORDERS_PATH, card_series_link, headers, browser)
     open_orders = OpenOrders(OPEN_ORDERS_PATH, headers)
 
+    api_mapper = APIMapper(BASE_API_PATH, card_series_link, TEAM_ID_MAP)
+    api_url = api_mapper.get_api_url()
+    market = Market(ROOT_PATH, api_url, api_mapper)
+
     print(f"Stubs Balance: {stubs.get_stubs_amount()}")
+
     browser.set_page(card_series_link)
+
     market.fetch_total_pages()
     print(market.total_pages_found)
 
@@ -72,6 +81,8 @@ try:
             test_listing = market.fetch_listings()
             for x in test_listing:
                 print(x)
+            print(len(test_listing))
+            break
 
         #         # place buy order for top 10 most profittable cards
         #         open_order_list = open_orders.get_all_open_orders()

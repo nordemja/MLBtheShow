@@ -1,54 +1,45 @@
 import requests
-from bs4 import BeautifulSoup
 from time import sleep
 
 
 class Market:
-    def __init__(
-        self, community_market_path, card_series_link, card_series_filter, headers
-    ):
-        self.community_market_path = community_market_path
-        self.card_series_link = card_series_link
-        self.card_series_filter = card_series_filter
-        self.headers = headers
+    def __init__(self, root_path, api_url, api_mapper):
+        self.root_path = root_path
+        self.api_url = api_url
+        self.api_mapper = api_mapper
         self.total_pages_found = 0
         self.listings = []
 
     def fetch_total_pages(self):
-        card_series = requests.get(self.card_series_link, headers=self.headers)
-        soup = BeautifulSoup(card_series.text, "html.parser")
-        total_pages_found = int(soup.find("h3").text.strip()[-1])
-        self.total_pages_found = total_pages_found
+        listings_json = requests.get(self.api_url).json()
+        self.total_pages_found = listings_json["total_pages"]
 
     def fetch_listings(self):
         for page in range(1, self.total_pages_found + 1):
-            page_link = (
-                f"{self.community_market_path}?page={page}&{self.card_series_filter}"
-            )
-            self._process_market_page(page_link)
+            self.api_mapper.params["page"] = page
+            updated_page_url = self.api_mapper.get_api_url()
+            self._process_market_page(updated_page_url)
 
         return self._sort_by_profit(self.listings)
 
-    def _process_market_page(self, page_link):
-        response = requests.get(page_link, headers=self.headers)
-        soup = BeautifulSoup(response.text, "html.parser")
-        rows = soup.find("tbody").find_all("tr")
+    def _process_market_page(self, api_link):
+        results_metadata = requests.get(api_link).json()
+        master_listings = results_metadata["listings"]
 
-        for row in rows:
-            listing = self._extract_listing_data(row)
-            if listing:
-                self.listings.append(listing)
+        for listing in master_listings:
+            player_data = self._extract_listing_data(listing)
+            if player_data:
+                self.listings.append(player_data)
 
-    # THIS METHOD IS BUGGY AND DOES NOT WORK PROPERY RN :(
-    def _extract_listing_data(self, row):
+    def _extract_listing_data(self, player):
         try:
-            request_name = row.contents[5].text.strip()
-            buy_amount = int(row.contents[11].text.strip())
-            sell_amount = int(row.contents[9].text.strip())
+            request_name = player["listing_name"]
+            buy_amount = int(player["best_buy_price"])
+            sell_amount = int(player["best_sell_price"])
             profit = int(sell_amount * 0.9) - buy_amount
-            url_suffix = row.find("a")["href"].strip().lstrip().rstrip("fave")
-            url = base_path + url_suffix
-            sellable = getTotalSellable(url, self.headers)
+            uuid = player["item"]["uuid"]
+            url = f"{self.root_path}/items/{uuid}"
+            # sellable = getTotalSellable(url, self.headers)
 
             return {
                 "player name": request_name,
@@ -56,7 +47,7 @@ class Market:
                 "sell amount": sell_amount,
                 "profit": profit,
                 "URL": url,
-                "sellable": sellable,
+                # "sellable": sellable,
             }
         except Exception as e:
             print(f"Error extracting listing: {e}")
