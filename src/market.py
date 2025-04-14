@@ -20,7 +20,7 @@ class Market:
 
     def _fetch_total_pages(self):
         listings_json = requests.get(self.api_url).json()
-        self.total_pages_found = listings_json["total_pages"]
+        return listings_json["total_pages"]
 
     def _process_market_page(self, api_link):
         results_metadata = requests.get(api_link).json()

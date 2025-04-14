@@ -36,6 +36,7 @@ from src.api_mapper import APIMapper
 from src.market import Market
 from src.sell_orders import SellOrders
 from src.open_orders import OpenOrders
+from src.players_to_buy import PlayersToBuy
 
 # session = get_new_browser_session(card_series_link, browser)
 # create_new_headers(session, init_headers)
@@ -57,7 +58,7 @@ try:
 
     headers = get_headers(headers_file_path)
     stubs = Stubs(COMMUNITY_MARKET_PATH, headers)
-    sell_orders = SellOrders(COMPLETED_ORDERS_PATH, card_series_link, headers, browser)
+    sell_orders = SellOrders(COMPLETED_ORDERS_PATH, headers, browser)
     open_orders = OpenOrders(OPEN_ORDERS_PATH, headers)
 
     api_mapper = APIMapper(BASE_API_PATH, card_series_link, TEAM_ID_MAP)
@@ -68,46 +69,35 @@ try:
 
     browser.set_page(card_series_link)
 
-    headers = sell_orders.execute()
+    headers = sell_orders.execute_sell_orders()
 
     while True:
         try:
             headers = get_headers(headers_file_path)
 
-            test_listing = market.fetch_listings()
+            listings = market.fetch_listings()
 
             # place buy order for top 10 most profittable cards
             open_order_list = open_orders.get_all_open_orders()
+            current_buy_order_length = len(open_orders.get_buy_orders())
             open_listing_length = len(open_order_list)
-            current_open_buy_orders = len(open_orders.get_buy_orders())
-            print("open buy orders = ", current_open_buy_orders)
+            print("open buy orders = ", current_buy_order_length)
 
-        #         player_list = []
-        #         players = 0
+            players_to_buy = PlayersToBuy(
+                listings,
+                open_order_list,
+                current_buy_order_length,
+                open_listing_length,
+            )
+            players_to_buy.select_players()
 
-        #         for each in listings:
-        #             order_state = 0
+            # execute buy orders
+            headers = doRecaptcha(
+                player_list, browser, "buy", headers, False, card_series_link, browser
+            )
 
-        #             if any(d["Name"] == each["player name"] for d in open_order_list):
-        #                 print(each["player name"])
-        #                 pass
-        #             if each["sellable"] > 0:
-        #                 print(each["player name"])
-        #                 print("CARD ALREADY OWNED AND READY TO BE SOLD")
-        #                 pass
-        #             else:
-        #                 if current_open_buy_orders == 10 or open_listing_length >= 25:
-        #                     break
-        #                 print(each)
-        #                 player_list.append(each)
-        #                 current_open_buy_orders += 1
-        #                 open_listing_length
-
-        #         headers = doRecaptcha(
-        #             player_list, browser, "buy", headers, False, card_series_link, browser
-        #         )
-
-        #         headers = doSellOrders(headers, card_series_link, browser)
+            # execute sell orders
+            headers = doSellOrders(headers, card_series_link, browser)
 
         #         open_buy_orders = getOpenBuyOrdersList(headers)
         #         browser.get(base_path + "orders/buy_orders")

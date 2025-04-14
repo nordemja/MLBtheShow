@@ -1,19 +1,5 @@
 class CaptchaSolver:
-    def __init__(self, browser, card_series_link, order_type, double_check=False):
-        self.browser = browser
-        self.card_series_link = card_series_link
-        self.order_type = order_type
-        self.double_check = double_check
-        self.failed_order_list = []
-        self.ready_list = []
-
-    def solve_captcha(self, player_list, data):
-        self._send_captcha_requests(player_list)
-        self._retrieve_tokens(player_list)
-        self._place_orders(player_list, data)
-        return data
-
-    def _send_captcha_requests(self, player_list):
+    def send_captcha_requests(self, player_list):
         """Send requests to 2captcha API to solve CAPTCHA."""
         for player in player_list:
             while True:
@@ -27,8 +13,9 @@ class CaptchaSolver:
                     continue
                 break
 
-    def _retrieve_tokens(self, player_list):
+    def get_captcha_tokens(self, player_list):
         """Retrieve CAPTCHA tokens from 2captcha API."""
+        ready_list = []
         start_time = time.time()
         i = 0
         while i < len(player_list):
@@ -40,7 +27,7 @@ class CaptchaSolver:
                         form_token = response.json().get("request")
                         player_list[i]["form_token"] = form_token
                         print(f"ACQUIRED TOKEN FOR {player_list[i]['player name']}")
-                        self.ready_list.append(player_list[i])
+                        ready_list.append(player_list[i])
                         i += 1
                     else:
                         # Move failed player to the end of the list and retry
@@ -54,3 +41,5 @@ class CaptchaSolver:
             elapsed_time = time.time() - start_time
             if elapsed_time > 60:
                 break
+
+        return ready_list

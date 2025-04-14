@@ -2,35 +2,33 @@ import requests
 from bs4 import BeautifulSoup
 
 from .captcha_solver import CaptchaSolver
+from .auth_token import AuthToken
 
 
 class SellOrders:
-    def __init__(self, completed_orders_path, card_series_link, headers, browser):
+    def __init__(self, completed_orders_path, headers, browser):
         self.completed_orders_path = completed_orders_path
-        self.card_series_link = card_series_link
         self.headers = headers
         self.browser = browser
 
-    def execute(self):
+    def execute_sell_orders(self):
         print("Executing sell orders....")
+
+        auth_token = AuthToken(player_url=None, headers=self.headers)
 
         # Fetch the list of sellable players from completed orders
         sellable_players = self._fetch_sellable_players()
 
         if sellable_players:
-            print("\n")
             # Once we have the players to sell, solve CAPTCHA and place orders
-            solver = CaptchaSolver(
-                players=sellable_players,
-                driver=self.browser,
-                order_type="sell",
-                headers=self.headers,
-                double_check=False,
-                card_series_link=self.card_series_link,
-                browser=self.browser,
-            )
-            # Solve the CAPTCHA and place the orders
-            self.headers = solver.solve()
+            captcha_solver = CaptchaSolver()
+            captcha_solver.send_captcha_requests(sellable_players)
+
+            auth_token.player_url = sellable_players["URL"]
+            auth_token_list = auth_token.get_sell_auth_token()
+            # get buy/sell amount
+            captcha_tokens = captcha_solver.get_captcha_tokens(sellable_players)
+            # place order
 
         print("DONE EXECUTING SELL ORDERS")
         return self.headers
