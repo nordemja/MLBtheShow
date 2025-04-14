@@ -7,20 +7,20 @@ class Market:
         self.root_path = root_path
         self.api_url = api_url
         self.api_mapper = api_mapper
-        self.total_pages_found = 0
         self.listings = []
 
-    def fetch_total_pages(self):
-        listings_json = requests.get(self.api_url).json()
-        self.total_pages_found = listings_json["total_pages"]
-
     def fetch_listings(self):
-        for page in range(1, self.total_pages_found + 1):
+        total_pages = self._fetch_total_pages()
+        for page in range(1, total_pages + 1):
             self.api_mapper.params["page"] = page
             updated_page_url = self.api_mapper.get_api_url()
             self._process_market_page(updated_page_url)
 
         return self._sort_by_profit(self.listings)
+
+    def _fetch_total_pages(self):
+        listings_json = requests.get(self.api_url).json()
+        self.total_pages_found = listings_json["total_pages"]
 
     def _process_market_page(self, api_link):
         results_metadata = requests.get(api_link).json()

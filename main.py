@@ -52,11 +52,10 @@ try:
     card_series_link = input("Enter Link of Card Criteria: ")
     card_series_filter = card_series_link.split("?")[1]
 
-    headers = get_headers(headers_file_path)
-
     browser = BrowserSession(COMMUNITY_MARKET_PATH)
     browser.start_browser()
 
+    headers = get_headers(headers_file_path)
     stubs = Stubs(COMMUNITY_MARKET_PATH, headers)
     sell_orders = SellOrders(COMPLETED_ORDERS_PATH, card_series_link, headers, browser)
     open_orders = OpenOrders(OPEN_ORDERS_PATH, headers)
@@ -69,9 +68,6 @@ try:
 
     browser.set_page(card_series_link)
 
-    market.fetch_total_pages()
-    print(market.total_pages_found)
-
     headers = sell_orders.execute()
 
     while True:
@@ -79,16 +75,12 @@ try:
             headers = get_headers(headers_file_path)
 
             test_listing = market.fetch_listings()
-            for x in test_listing:
-                print(x)
-            print(len(test_listing))
-            break
 
-        #         # place buy order for top 10 most profittable cards
-        #         open_order_list = open_orders.get_all_open_orders()
-        #         open_listing_length = len(open_order_list)
-        #         current_open_buy_orders = len(getOpenBuyOrdersList(headers))
-        #         print("open buy orders = ", current_open_buy_orders)
+            # place buy order for top 10 most profittable cards
+            open_order_list = open_orders.get_all_open_orders()
+            open_listing_length = len(open_order_list)
+            current_open_buy_orders = len(open_orders.get_buy_orders())
+            print("open buy orders = ", current_open_buy_orders)
 
         #         player_list = []
         #         players = 0
