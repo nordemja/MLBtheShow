@@ -4,12 +4,11 @@ from bs4 import BeautifulSoup
 
 
 class Stubs:
-    def __init__(self, base_path, headers):
-        self.base_path = base_path
+    def __init__(self, headers):
         self.headers = headers
 
-    def get_stubs_amount(self):
-        stubs_amount = requests.get(self.base_path, headers=self.headers)
+    def get_stubs_amount(self, base_path):
+        stubs_amount = requests.get(base_path, headers=self.headers)
         soup = BeautifulSoup(stubs_amount.text, "html.parser")
         stubs_amount = (
             soup.find("div", {"class": "well stubs"})

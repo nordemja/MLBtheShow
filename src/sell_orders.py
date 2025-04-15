@@ -15,11 +15,11 @@ class SellOrders:
     def execute_sell_orders(self):
         print("Executing sell orders....")
 
-        auth_token = AuthToken(headers=self.headers)
         sellable_players = self._fetch_sellable_players()
 
         if sellable_players:
             # Once we have the players to sell, solve CAPTCHA and place orders
+            auth_token = AuthToken(headers=self.headers)
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(sellable_players)
             auth_token.get_auth_tokens(sellable_players)
@@ -30,7 +30,7 @@ class SellOrders:
             )
             self._place_sell_orders(sellable_players_with_captcha_tokens)
 
-        print("DONE EXECUTING SELL ORDERS")
+            print("DONE EXECUTING SELL ORDERS")
         return self.headers
 
     def _fetch_sellable_players(self):
@@ -111,7 +111,7 @@ class SellOrders:
                 player_url=player["URL"], form_token=player["form_token"]
             )
             self._sell_order_post_request(
-                playerURL=player["URL"],
+                player_url=player["URL"],
                 sell_amount=player["sell_price"],
                 form_token=player["form_token"],
                 auth_token_list=player["auth_token_list"],

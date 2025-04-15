@@ -58,7 +58,7 @@ try:
     browser.start_browser()
 
     headers = get_headers(headers_file_path)
-    stubs = Stubs(COMMUNITY_MARKET_PATH, headers)
+    stubs = Stubs(headers)
     sell_orders = SellOrders(
         SINGLE_ITEM_LISTING_API_PATH, COMPLETED_ORDERS_PATH, headers, browser.driver
     )
@@ -68,15 +68,13 @@ try:
     api_url = api_mapper.get_api_url()
     market = Market(ROOT_PATH, api_url, api_mapper)
 
-    print(f"Stubs Balance: {stubs.get_stubs_amount()}")
+    print(f"Stubs Balance: {stubs.get_stubs_amount(COMMUNITY_MARKET_PATH)}")
 
     # browser.set_page(card_series_link)
 
-    headers = sell_orders.execute_sell_orders()
-
     while True:
         try:
-            headers = get_headers(headers_file_path)
+            # headers = sell_orders.execute_sell_orders()
 
             listings = market.fetch_listings()
 
@@ -87,19 +85,16 @@ try:
             print("open buy orders = ", current_buy_order_length)
 
             buy_orders = BuyOrders(
+                COMMUNITY_MARKET_PATH,
                 listings,
                 open_order_list,
                 current_buy_order_length,
                 open_listing_length,
+                headers,
+                browser.driver,
             )
             headers = buy_orders.execute_buy_orders()
 
-            # execute buy orders
-            headers = doRecaptcha(
-                player_list, browser, "buy", headers, False, card_series_link, browser
-            )
-
-            # execute sell orders
             headers = sell_orders.execute_sell_orders()
 
         #         open_buy_orders = getOpenBuyOrdersList(headers)
@@ -219,8 +214,6 @@ try:
         #         headers = doRecaptcha(
         #             player_list, browser, "sell", headers, True, card_series_link, browser
         #         )
-
-        #         headers = doSellOrders(headers, card_series_link, browser)
 
         except KeyboardInterrupt:
             print("STOPPING PROGRAM")

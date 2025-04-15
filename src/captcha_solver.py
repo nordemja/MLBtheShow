@@ -12,9 +12,6 @@ class CaptchaSolver:
         """Send requests to 2captcha API to solve CAPTCHA."""
         # try:
         for player in player_list:
-            print(
-                f"https://2captcha.com/in.php?key={self.api_key}&method=userrecaptcha&googlekey={self.data_sitekey}&pageurl={player['URL']}&json=1&invisible=1"
-            )
             u1 = f"https://2captcha.com/in.php?key={self.api_key}&method=userrecaptcha&googlekey={self.data_sitekey}&pageurl={player['URL']}&json=1&invisible=1"
             response = requests.get(u1)
             request_id = int(response.json().get("request"))
