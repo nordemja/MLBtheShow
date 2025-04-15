@@ -35,9 +35,9 @@ from src.browser_session import BrowserSession
 from src.stubs import Stubs
 from src.api_mapper import APIMapper
 from src.market import Market
+from src.buy_orders import BuyOrders
 from src.sell_orders import SellOrders
 from src.open_orders import OpenOrders
-from src.players_to_buy import PlayersToBuy
 
 # session = get_new_browser_session(card_series_link, browser)
 # create_new_headers(session, init_headers)
@@ -86,13 +86,13 @@ try:
             open_listing_length = len(open_order_list)
             print("open buy orders = ", current_buy_order_length)
 
-            players_to_buy = PlayersToBuy(
+            buy_orders = BuyOrders(
                 listings,
                 open_order_list,
                 current_buy_order_length,
                 open_listing_length,
             )
-            players_to_buy_list = players_to_buy.select_players()
+            headers = buy_orders.execute_buy_orders()
 
             # execute buy orders
             headers = doRecaptcha(
