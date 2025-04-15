@@ -3,17 +3,13 @@ import os
 
 # import time
 # import undetected_chromedriver as uc
-# from bs4 import BeautifulSoup
 from playsound import playsound
 
 # from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 # from selenium.common.exceptions import NoSuchElementException
 # from tools import get_new_browser_session
-# from amounts import getStubsAmount, getBuyAmount, getSellAmount
 # from headers import get_headers, create_new_headers
 # from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
-# from get_total_sellable import getTotalSellable
-# from solver import doRecaptcha, doSellOrders
 from config.globals import (
     ROOT_PATH,
     BASE_API_PATH,
@@ -51,26 +47,24 @@ try:
         os.path.dirname(os.path.abspath(__file__)), "config", HEADERS_PATH
     )
 
-    card_series_link = input("Enter Link of Card Criteria: ")
-    card_series_filter = card_series_link.split("?")[1]
-
-    browser = BrowserSession(COMMUNITY_MARKET_PATH)
-    browser.start_browser()
-
     headers = get_headers(headers_file_path)
     stubs = Stubs(headers)
+    print(f"Stubs Balance: {stubs.get_stubs_amount(COMMUNITY_MARKET_PATH)}")
+
+    browser = BrowserSession(headers=headers)
+    browser.start_browser(COMMUNITY_MARKET_PATH)
+
+    card_series_link = input("Enter Link of Card Criteria: ")
+    # browser.set_page(card_series_link)
+
     sell_orders = SellOrders(
-        SINGLE_ITEM_LISTING_API_PATH, COMPLETED_ORDERS_PATH, headers, browser.driver
+        SINGLE_ITEM_LISTING_API_PATH, COMPLETED_ORDERS_PATH, headers, browser
     )
     open_orders = OpenOrders(OPEN_ORDERS_PATH, headers)
 
     api_mapper = APIMapper(BASE_API_PATH, card_series_link, TEAM_ID_MAP)
     api_url = api_mapper.get_api_url()
     market = Market(ROOT_PATH, api_url, api_mapper)
-
-    print(f"Stubs Balance: {stubs.get_stubs_amount(COMMUNITY_MARKET_PATH)}")
-
-    # browser.set_page(card_series_link)
 
     while True:
         try:
@@ -91,7 +85,7 @@ try:
                 current_buy_order_length,
                 open_listing_length,
                 headers,
-                browser.driver,
+                browser,
             )
             headers = buy_orders.execute_buy_orders()
 

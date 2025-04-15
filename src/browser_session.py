@@ -1,23 +1,53 @@
 import time
 import json
+from urllib.parse import urlparse
 import undetected_chromedriver as uc
 
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
 class BrowserSession:
-    def __init__(self, initial_url):
-        self.initial_url = initial_url
+    def __init__(self, headers):
+        self.headers = headers
         self.driver = None
 
-    def start_browser(self):
+    def start_browser(self, url):
         desired_capabilities = DesiredCapabilities.CHROME
         desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
-        self.driver = uc.Chrome(desired_capabilities=desired_capabilities)
+        options = uc.ChromeOptions()
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-blink-features=AutomationControlled")
 
-    def set_page(self, url):
+        self.driver = uc.Chrome(
+            options=options, desired_capabilities=desired_capabilities
+        )
+
         self.driver.get(url)
         time.sleep(3)
+        self._login(url)
+
+    def _login(self, url):
+        self.driver.delete_all_cookies()
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc
+
+        cookie_header = self.headers.get("cookie", "")
+        for cookie_pair in cookie_header.split("; "):
+            if "=" in cookie_pair:
+                name, value = cookie_pair.split("=", 1)
+                cookie = {
+                    "name": name.strip(),
+                    "value": value.strip(),
+                    "domain": domain,
+                    "path": "/",
+                }
+                try:
+                    self.driver.add_cookie(cookie)
+                except Exception as e:
+                    print(f"Couldn't add cookie {name}: {e}")
+
+        self.driver.get(url)
 
     def get_new_browser_session(url, browser):
         session_list = []

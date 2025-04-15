@@ -6,11 +6,11 @@ from .auth_token import AuthToken
 
 
 class SellOrders:
-    def __init__(self, single_item_api_path, completed_orders_path, headers, driver):
+    def __init__(self, single_item_api_path, completed_orders_path, headers, browser):
         self.single_item_api_path = single_item_api_path
         self.completed_orders_path = completed_orders_path
         self.headers = headers
-        self.driver = driver
+        self.driver = browser.driver
 
     def execute_sell_orders(self):
         print("Executing sell orders....")

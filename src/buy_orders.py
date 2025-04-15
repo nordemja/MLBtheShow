@@ -12,7 +12,7 @@ class BuyOrders:
         buy_order_length,
         total_open_listing_length,
         headers,
-        driver,
+        browser,
         max_buy_orders=10,
         max_total_listings=25,
     ):
@@ -22,7 +22,7 @@ class BuyOrders:
         self.buy_order_length = buy_order_length
         self.total_open_listing_length = total_open_listing_length
         self.headers = headers
-        self.driver = driver
+        self.driver = browser.driver
         self.max_buy_orders = max_buy_orders
         self.max_total_listings = max_total_listings
         self.players_to_buy = []
