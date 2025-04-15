@@ -38,7 +38,7 @@ class PlayersToBuy:
             self.buy_order_length += 1
             self.total_open_listing_length += 1
 
-        return self.select_players
+        return self.selected_players
 
     # def _is_sellable(self, listing):
     #     return listing.get("sellable", 0) > 0

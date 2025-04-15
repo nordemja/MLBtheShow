@@ -17,6 +17,7 @@ from playsound import playsound
 from config.globals import (
     ROOT_PATH,
     BASE_API_PATH,
+    SINGLE_ITEM_LISTING_API_PATH,
     COMMUNITY_MARKET_PATH,
     OPEN_ORDERS_PATH,
     COMPLETED_ORDERS_PATH,
@@ -58,7 +59,9 @@ try:
 
     headers = get_headers(headers_file_path)
     stubs = Stubs(COMMUNITY_MARKET_PATH, headers)
-    sell_orders = SellOrders(COMPLETED_ORDERS_PATH, headers, browser)
+    sell_orders = SellOrders(
+        SINGLE_ITEM_LISTING_API_PATH, COMPLETED_ORDERS_PATH, headers, browser.driver
+    )
     open_orders = OpenOrders(OPEN_ORDERS_PATH, headers)
 
     api_mapper = APIMapper(BASE_API_PATH, card_series_link, TEAM_ID_MAP)
@@ -67,7 +70,7 @@ try:
 
     print(f"Stubs Balance: {stubs.get_stubs_amount()}")
 
-    browser.set_page(card_series_link)
+    # browser.set_page(card_series_link)
 
     headers = sell_orders.execute_sell_orders()
 
@@ -89,7 +92,7 @@ try:
                 current_buy_order_length,
                 open_listing_length,
             )
-            players_to_buy.select_players()
+            players_to_buy_list = players_to_buy.select_players()
 
             # execute buy orders
             headers = doRecaptcha(
@@ -97,7 +100,7 @@ try:
             )
 
             # execute sell orders
-            headers = doSellOrders(headers, card_series_link, browser)
+            headers = sell_orders.execute_sell_orders()
 
         #         open_buy_orders = getOpenBuyOrdersList(headers)
         #         browser.get(base_path + "orders/buy_orders")

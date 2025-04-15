@@ -6,51 +6,39 @@ from .auth_token import AuthToken
 
 
 class SellOrders:
-    def __init__(self, completed_orders_path, headers, browser):
+    def __init__(self, single_item_api_path, completed_orders_path, headers, driver):
+        self.single_item_api_path = single_item_api_path
         self.completed_orders_path = completed_orders_path
         self.headers = headers
-        self.browser = browser
+        self.driver = driver
 
     def execute_sell_orders(self):
         print("Executing sell orders....")
 
-        auth_token = AuthToken(player_url=None, headers=self.headers)
-
-        # Fetch the list of sellable players from completed orders
+        auth_token = AuthToken(headers=self.headers)
         sellable_players = self._fetch_sellable_players()
 
         if sellable_players:
             # Once we have the players to sell, solve CAPTCHA and place orders
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(sellable_players)
+            auth_token.get_auth_tokens(sellable_players)
+            self._get_item_sell_price(sellable_players)
 
-            auth_token.player_url = sellable_players["URL"]
-            auth_token_list = auth_token.get_sell_auth_token()
-            # get buy/sell amount
-            captcha_tokens = captcha_solver.get_captcha_tokens(sellable_players)
-            # place order
+            sellable_players_with_captcha_tokens = captcha_solver.get_captcha_tokens(
+                sellable_players
+            )
+            self._place_sell_orders(sellable_players_with_captcha_tokens)
 
         print("DONE EXECUTING SELL ORDERS")
         return self.headers
 
     def _fetch_sellable_players(self):
         # This method fetches all completed orders and identifies which players are sellable
-        attempts = 0
-        while True:
-            try:
-                completed_page = requests.get(
-                    self.completed_orders_path, headers=self.headers
-                )
-                soup = BeautifulSoup(completed_page.text, "html.parser")
-                total_pages = int(
-                    soup.find("div", {"class": "pagination"}).find("a").text
-                )
-                break
-            except:
-                attempts += 1
-                if attempts >= 5:
-                    self._refresh_session()
-                    attempts = 0
+        completed_page = requests.get(self.completed_orders_path, headers=self.headers)
+        soup = BeautifulSoup(completed_page.text, "html.parser")
+        total_pages = int(soup.find("div", {"class": "pagination"}).find("a").text)
+
         sell_players = []
         for page in range(1, total_pages + 1):
             print(f"PAGE: {page}")
@@ -59,22 +47,25 @@ class SellOrders:
                 break
 
             for row in player_order_info:
-                try:
-                    player_name = row.contents[1].text.strip()
-                    order_type = row.contents[3].text.strip().split()[0]
-                    if order_type == "Bought":
-                        player_url = (
-                            "https://mlb23.theshow.com" + row.find("a")["href"].strip()
+                player_name = row.contents[1].text.strip()
+                order_type = row.contents[3].text.strip().split()[0]
+                if order_type == "Bought":
+                    player_url = (
+                        "https://mlb23.theshow.com" + row.find("a")["href"].strip()
+                    )
+                    # Check if the player is sellable
+                    if self._get_total_sellable(player_url, self.headers) > 0:
+                        uuid = player_url.split("/")[-1]
+                        sell_players.append(
+                            {
+                                "player name": player_name,
+                                "URL": player_url,
+                                "uuid": uuid,
+                            }
                         )
-                        # Check if the player is sellable
-                        if getTotalSellable(player_url, self.headers) > 0:
-                            sell_players.append(
-                                {"player name": player_name, "URL": player_url}
-                            )
-                            print(player_name)
-                except:
-                    continue
-        return sell_players
+                        print(player_name)
+                    else:
+                        return sell_players
 
     def _get_orders_from_page(self, page):
         # Fetch orders for a specific page
@@ -91,3 +82,71 @@ class SellOrders:
                 if attempts >= 5:
                     self._refresh_session()
                     return None
+
+    def _get_total_sellable(self, playerURL, headers):
+        try:
+            player_page = requests.get(playerURL, headers=headers)
+            soup = BeautifulSoup(player_page.text, "html.parser")
+            total_sellable = soup.find_all("div", {"class": "well"})
+            for each in total_sellable:
+                if "Sellable" in each.text.strip():
+                    total_sellable = each.text.strip()[-1]
+                    return int(total_sellable)
+        except Exception as e:
+            print(e)
+
+    def _get_item_sell_price(self, player_list):
+        for player in player_list:
+            response = requests.get(
+                f"{self.single_item_api_path}?uuid={player['uuid']}"
+            ).json()
+            player["sell_price"] = response["best_sell_price"]
+
+    def _place_sell_orders(self, player_list):
+        for player in player_list:
+            sellable_before = self._get_total_sellable(
+                playerURL=player["URL"], headers=self.headers
+            )
+            self._inject_captcha_token_into_webpage(
+                player_url=player["URL"], form_token=player["form_token"]
+            )
+            self._sell_order_post_request(
+                playerURL=player["URL"],
+                sell_amount=player["sell_price"],
+                form_token=player["form_token"],
+                auth_token_list=player["auth_token_list"],
+                sellable_before=sellable_before,
+            )
+
+    def _inject_captcha_token_into_webpage(self, player_url, form_token):
+        self.driver.get(player_url)
+        wirte_tokon_js = (
+            f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
+        )
+        self.driver.execute_script(wirte_tokon_js)
+
+    def _sell_order_post_request(
+        self, player_url, sell_amount, form_token, auth_token_list, sellable_before
+    ):
+        for token in auth_token_list:
+            form_data = {
+                "authenticity_token": token,
+                "price": sell_amount - 25,
+                "g-recaptcha-response": form_token,
+            }
+            send_post = requests.post(
+                player_url + "/create_sell_order", form_data, headers=self.headers
+            )
+
+        sellable_after = self._get_total_sellable(
+            playerURL=player_url, headers=self.headers
+        )
+
+        if sellable_after != sellableBefore:
+            print(sellable_after)
+            print(send_post)
+
+        else:
+            sellable_after == sellableBefore
+            print(sellable_after)
+            print("ORDER NOT PLACED")

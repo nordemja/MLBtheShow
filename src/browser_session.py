@@ -8,17 +8,15 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 class BrowserSession:
     def __init__(self, initial_url):
         self.initial_url = initial_url
-        self.browser = None
-        self.session = None
+        self.driver = None
 
     def start_browser(self):
         desired_capabilities = DesiredCapabilities.CHROME
         desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
-        self.browser = uc.Chrome(desired_capabilities=desired_capabilities)
-        self.browser.get(self.initial_url)
+        self.driver = uc.Chrome(desired_capabilities=desired_capabilities)
 
     def set_page(self, url):
-        self.browser.get(url)
+        self.driver.get(url)
         time.sleep(3)
 
     def get_new_browser_session(url, browser):
