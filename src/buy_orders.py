@@ -1,3 +1,5 @@
+import requests
+
 from .captcha_solver import CaptchaSolver
 from .auth_token import AuthToken
 from .stubs import Stubs
@@ -78,7 +80,7 @@ class BuyOrders:
             and self.total_open_listing_length < self.max_total_listings
         )
 
-    def _place_buy_order(self, player_list):
+    def _place_buy_orders(self, player_list):
         for player in player_list:
             self._inject_captcha_token_into_webpage(
                 player_url=player["URL"], form_token=player["form_token"]

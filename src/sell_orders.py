@@ -31,6 +31,7 @@ class SellOrders:
             self._place_sell_orders(sellable_players_with_captcha_tokens)
 
             print("DONE EXECUTING SELL ORDERS")
+
         return self.headers
 
     def _fetch_sellable_players(self):
@@ -142,11 +143,10 @@ class SellOrders:
             playerURL=player_url, headers=self.headers
         )
 
-        if sellable_after != sellableBefore:
+        if sellable_after != sellable_before:
             print(sellable_after)
             print(send_post)
 
         else:
-            sellable_after == sellableBefore
             print(sellable_after)
             print("ORDER NOT PLACED")

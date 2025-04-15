@@ -22,6 +22,12 @@ class APIMapper:
                 team_id = int(value)
                 if team_id in self.team_id_map:
                     self.params[web_key] = self.team_id_map[team_id]
+            elif web_key == "max_best_buy_price":
+                web_key = "max_best_sell_price"
+                self.params[web_key] = value
+            elif web_key == "min_best_buy_price":
+                web_key = "min_best_sell_price"
+                self.params[web_key] = value
             # CAN SKIP ADDING SUBDOMAIN TO API URL AS THAT IS NOT NEEDED IN API CALL
             elif web_key == "subdomain":
                 continue
@@ -32,4 +38,5 @@ class APIMapper:
         """
         Return the full API URL with current parameters.
         """
+        print(f"{self.base_api_path}?{urlencode(self.params)}")
         return f"{self.base_api_path}?{urlencode(self.params)}"
