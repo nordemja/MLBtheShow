@@ -7,77 +7,65 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
 class BrowserSession:
-    def __init__(self, headers):
-        self.headers = headers
+    def __init__(self, community_market_path):
+        self.community_market_path = community_market_path
+        self.session_cookie = None
         self.driver = None
+        self.allowed_keys = {
+            "tsn_token",
+            "ab.storage.userId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5",
+            "ab.storage.deviceId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5",
+            "tsn_item_referrer",
+            "_gid",
+            "_tsn_session",
+            "ab.storage.sessionId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5",
+            "_ga",
+            "tsn_last_url",
+            "_ga_EJKYYHZPBF",
+        }
 
-    def start_browser(self, url):
+    def start_browser(self):
         desired_capabilities = DesiredCapabilities.CHROME
         desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
         options = uc.ChromeOptions()
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--user-data-dir=C:/Users/justi/chrome_user_data_copy")
+        options.add_argument("--profile-directory=Profile 2")
 
         self.driver = uc.Chrome(
             options=options, desired_capabilities=desired_capabilities
         )
 
+    def get_cookie_header_from_browser(self, url):
         self.driver.get(url)
-        time.sleep(3)
-        self._login(url)
+        time.sleep(10)
+        self.driver.get(url)  # Let it fully load and send requests
 
-    def _login(self, url):
-        self.driver.delete_all_cookies()
-        parsed_url = urlparse(url)
-        domain = parsed_url.netloc
+        logs = self.driver.get_log("performance")
+        for entry in logs:
+            try:
+                log = json.loads(entry["message"])["message"]
+                if (
+                    log["method"] == "Network.requestWillBeSentExtraInfo"
+                    and "headers" in log["params"]
+                    and "cookie" in log["params"]["headers"]
+                ):
+                    full_browser_cookie = log["params"]["headers"]["cookie"]
+                    self.session_cookie = self._parse_cookie(full_browser_cookie)
+                    return  # Grab the first valid one and break
+            except Exception:
+                continue
 
-        cookie_header = self.headers.get("cookie", "")
-        for cookie_pair in cookie_header.split("; "):
-            if "=" in cookie_pair:
-                name, value = cookie_pair.split("=", 1)
-                cookie = {
-                    "name": name.strip(),
-                    "value": value.strip(),
-                    "domain": domain,
-                    "path": "/",
-                }
-                try:
-                    self.driver.add_cookie(cookie)
-                except Exception as e:
-                    print(f"Couldn't add cookie {name}: {e}")
+        print("ERROR: No cookie header found.")
+        exit()
 
-        self.driver.get(url)
+    def _parse_cookie(self, cookie_str):
+        cookies = ""
+        for item in cookie_str.split("; "):
+            if "=" in item:
+                key, value = item.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                if key in self.allowed_keys:
+                    cookies += key + "=" + value + "; "
 
-    def get_new_browser_session(url, browser):
-        session_list = []
-
-        # Enable Performance Logging of Chrome.
-
-        browser.get(url)
-        time.sleep(3)
-        logs = browser.get_log("performance")
-
-        # Iterates every logs and parses it using JSON
-        for log in logs:
-            network_log = json.loads(log["message"])["message"]
-
-            # Checks if the current 'method' key has any
-            # Network related value.
-            if "Network.requestWillBeSentExtraInfo" in network_log["method"]:
-
-                try:
-                    x = network_log["params"]["headers"]["cookie"]
-                    new_session = x.split(";")
-
-                    for each in new_session:
-                        if ("_tsn_session=") in each:
-                            res = each.split("=")
-                            if res[1] not in session_list:
-                                session_list.append(res[1])
-
-                except:
-                    pass
-
-        print(session_list[-1])
-        return session_list[-1]
+        return cookies.rstrip("; ").strip()

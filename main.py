@@ -1,5 +1,6 @@
 import traceback
 import os
+import time
 
 # import time
 # import undetected_chromedriver as uc
@@ -25,7 +26,7 @@ from config.team_id_map import TEAM_ID_MAP
 
 # from webdriver_manager.chrome import ChromeDriverManager
 
-from src.headers import get_headers
+from src.headers import Headers
 
 from src.browser_session import BrowserSession
 from src.stubs import Stubs
@@ -47,12 +48,24 @@ try:
         os.path.dirname(os.path.abspath(__file__)), "config", HEADERS_PATH
     )
 
-    headers = get_headers(headers_file_path)
-    stubs = Stubs(headers)
+    browser = BrowserSession(community_market_path=COMMUNITY_MARKET_PATH)
+    browser.start_browser()
+    browser.get_cookie_header_from_browser(url=COMMUNITY_MARKET_PATH)
+
+    auth_cookie = browser.session_cookie
+    print(auth_cookie)
+
+    headers = Headers(headers_file_path)
+    headers.update_cookie(auth_cookie)
+
+    active_headers = headers.get_headers()
+    print(active_headers)
+    time.sleep(30)
+
+    stubs = Stubs(active_headers)
     print(f"Stubs Balance: {stubs.get_stubs_amount(COMMUNITY_MARKET_PATH)}")
 
-    browser = BrowserSession(headers=headers)
-    browser.start_browser(COMMUNITY_MARKET_PATH)
+    exit()
 
     card_series_link = input("Enter Link of Card Criteria: ")
     # browser.set_page(card_series_link)

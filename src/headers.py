@@ -1,27 +1,26 @@
 import json
 import requests
+from pathlib import Path
 
 
-def get_headers(headers_path):
-    filepath = headers_path
-    with open(filepath) as f:
-        headers = json.load(f)
-    return headers
+class Headers:
+    def __init__(self, headers_path: str):
+        self.headers_path = Path(headers_path)
+        self.headers = self._load_headers()
 
+    def get_headers(self) -> dict:
+        return self.headers
 
-def create_new_headers(session, headers, headers_path):
-    temp_headers = headers["cookie"].split(";")
-    new_cookie = ""
-    for each in range(len(temp_headers)):
-        if "_tsn_session" in temp_headers[each]:
-            temp_headers[each] = temp_headers[each].split("=")[0] + "=" + session
+    def update_cookie(self, new_cookie: str):
+        self.headers["cookie"] = new_cookie
+        self._save_headers()
 
-        new_cookie += temp_headers[each] + ";"
+    def _load_headers(self) -> dict:
+        if not self.headers_path.exists():
+            raise FileNotFoundError(f"Header file not found: {self.headers_path}")
+        with self.headers_path.open("r") as f:
+            return json.load(f)
 
-    new_cookie = new_cookie[:-1] + ""
-    headers["cookie"] = new_cookie
-
-    new_headers = json.dumps(headers)
-    filepath = headers_path
-    with open(filepath, "w") as outfile:
-        outfile.write(new_headers)
+    def _save_headers(self):
+        with self.headers_path.open("w") as f:
+            json.dump(self.headers, f, indent=4)
