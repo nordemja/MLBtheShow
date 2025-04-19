@@ -1,9 +1,6 @@
 import traceback
 import os
 import time
-
-# import time
-# import undetected_chromedriver as uc
 from playsound import playsound
 
 # from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
@@ -53,14 +50,12 @@ try:
     browser.get_cookie_header_from_browser(url=COMMUNITY_MARKET_PATH)
 
     auth_cookie = browser.session_cookie
-    print(auth_cookie)
 
     headers = Headers(headers_file_path)
     headers.update_cookie(auth_cookie)
 
     active_headers = headers.get_headers()
     print(active_headers)
-    time.sleep(30)
 
     stubs = Stubs(active_headers)
     print(f"Stubs Balance: {stubs.get_stubs_amount(COMMUNITY_MARKET_PATH)}")
