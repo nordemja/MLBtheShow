@@ -10,6 +10,5 @@
     "sec-ch-ua": "^^Google",
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": "^^Windows^^",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-    "cookie": "tsn_token=eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MjEzNjM2LCJ1c2VybmFtZSI6ImFuZ3J5X3BsYXR5cHVzNjJfUFNOIiwicGljdHVyZSI6Imh0dHBzOi8vdGhlc2hvd25hdGlvbi1wcm9kdWN0aW9uLnMzLmFtYXpvbmF3cy5jb20vZm9ydW1faWNvbnMvbWxiMjQvaWNvbl90aGVzaG93X2xvZ28ud2VicCIsImdyb3VwcyI6W119.mSWEgiuvdPuuFPxcl3HnmDi3c88DESNuYTG6AMlywCs; _ga=GA1.1.163814494.1744915561; tsn_last_url=0VAJuQVqv7vYexdsp5aBMsVBcSZuvvw5UCRzitOjbSApfN2rN_okCOAOd_nyy4rT; _tsn_session=33394c58899219a1f3866682fd4d1b1c; ab.storage.sessionId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5=%7B%22g%22%3A%225902dde3-98bb-f7c5-f55b-a8697336183d%22%2C%22e%22%3A1745031077145%2C%22c%22%3A1745027328102%2C%22l%22%3A1745029277145%7D; _ga_EJKYYHZPBF=GS1.1.1745027321.5.1.1745029277.0.0.0; _gid=GA1.3.1120163216.1745029277"
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 }
