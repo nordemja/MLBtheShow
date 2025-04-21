@@ -6,8 +6,6 @@ from playsound import playsound
 # from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 # from selenium.common.exceptions import NoSuchElementException
 # from tools import get_new_browser_session
-# from headers import get_headers, create_new_headers
-# from open_orders import getTotalOpenOrders, getOpenBuyOrdersList, getOpenSellOrdersList
 from config.globals import (
     ROOT_PATH,
     BASE_API_PATH,
@@ -32,9 +30,7 @@ from src.market import Market
 from src.buy_orders import BuyOrders
 from src.sell_orders import SellOrders
 from src.open_orders import OpenOrders
-
-# session = get_new_browser_session(card_series_link, browser)
-# create_new_headers(session, init_headers)
+from src.order_checker import OrderChecker
 
 try:
 
@@ -76,7 +72,8 @@ try:
 
     while True:
         try:
-            # headers = sell_orders.execute_sell_orders()
+            players_to_sell = sell_orders.fetch_sellable_players()
+            headers = sell_orders.execute_sell_orders()
 
             listings = market.fetch_listings()
 
@@ -95,132 +92,40 @@ try:
                 headers,
                 browser,
             )
-            headers = buy_orders.execute_buy_orders()
 
-            headers = sell_orders.execute_sell_orders()
+            players_to_buy = buy_orders.select_players()
 
-        #         open_buy_orders = getOpenBuyOrdersList(headers)
-        #         browser.get(base_path + "orders/buy_orders")
-        #         time.sleep(3)
-        #         player_list = []
-        #         for each in open_buy_orders:
-        #             player_dict = {}
-        #             attempts = 0
-        #             while True:
-        #                 try:
-        #                     current_price = getBuyAmount(each["URL"], headers)
-        #                 except:
-        #                     attempts += 1
-        #                     if attempts == 5:
-        #                         playsound(error_sound_path)
-        #                         session = get_new_browser_session(card_series_link, browser)
-        #                         create_new_headers(session, headers)
-        #                         headers = get_headers()
-        #                         attempts = 0
-        #                         continue
-        #                     else:
-        #                         print("Failed once")
-        #                         continue
-        #                 break
+            headers = buy_orders.execute_buy_orders(players_to_buy=players_to_buy)
 
-        #             if int(each["Posted Price"]) < current_price:
-        #                 player_dict["player name"] = each["Name"]
-        #                 player_dict["URL"] = each["URL"]
-        #                 while True:
-        #                     try:
-        #                         print("cancelling order for " + each["Name"])
-        #                         browser.find_element(
-        #                             "xpath",
-        #                             '//*[@id="' + each["Order ID"] + '"]/td[1]/form/button',
-        #                         ).click()
-        #                         browser.switch_to.alert.accept()
-        #                         player_list.append(player_dict)
+            players_to_sell = sell_orders.fetch_sellable_players()
+            headers = sell_orders.execute_sell_orders(players_to_sell=players_to_sell)
 
-        #                     except:
+            open_buy_orders = open_buy_orders.get_buy_orders()
+            browser.get(base_path + "orders/buy_orders")
+            time.sleep(3)
 
-        #                         playsound(error_sound_path)
-        #                         pass
-        #                     break
-        #             else:
-        #                 print(
-        #                     each["Name"]
-        #                     + " at "
-        #                     + each["Posted Price"]
-        #                     + " is currently best sell price"
-        #                 )
+            order_checker = OrderChecker(
+                single_item_api_path=SINGLE_ITEM_LISTING_API_PATH
+            )
 
-        #         headers = doRecaptcha(
-        #             player_list, browser, "buy", headers, True, card_series_link, browser
-        #         )
+            replace_buy_orders = order_checker.check_buy_orders(open_buy_orders)
 
-        #         while True:
-        #             try:
-        #                 browser.get(base_path + "orders/sell_orders")
-        #             except:
-        #                 continue
-        #             break
-        #         time.sleep(3)
-        #         open_sell_orders = getOpenSellOrdersList(headers)
+            headers = buy_orders.execute_buy_orders(replace_buy_orders)
 
-        #         player_list = []
-        #         for each in open_sell_orders:
-        #             player_dict = {}
-        #             order_state = 0
-        #             attempts = 0
-        #             try:
-        #                 while True:
-        #                     try:
-        #                         current_sell_amount = getSellAmount(each["URL"], headers)
-        #                     except:
-        #                         attempts += 1
-        #                         if attempts == 5:
-        #                             playsound(error_sound_path)
-        #                             session = get_new_browser_session(
-        #                                 card_series_link, browser
-        #                             )
-        #                             create_new_headers(session, headers)
-        #                             headers = get_headers()
-        #                             attempts = 0
-        #                         else:
-        #                             print("Failed " + str(attempts))
-        #                             continue
-        #                     break
-        #                 if int(each["Posted Price"]) > current_sell_amount:
-        #                     player_dict["player name"] = each["Name"]
-        #                     player_dict["URL"] = each["URL"]
-        #                     player_list.append(player_dict)
-        #                     print(
-        #                         "Cancelling " + each["Name"] + " at " + each["Posted Price"]
-        #                     )
-        #                     print(each["Posted Price"])
-        #                     print(current_sell_amount)
-        #                     try:
-        #                         browser.find_element(
-        #                             "xpath",
-        #                             '//*[@id="' + each["Order ID"] + '"]/td[1]/form/button',
-        #                         ).click()
-        #                         browser.switch_to.alert.accept()
-        #                     except:
-        #                         pass
+            browser.get(base_path + "orders/sell_orders")
+            time.sleep(3)
+            open_sell_orders = getOpenSellOrdersList(headers)
 
-        #                 else:
-        #                     print(
-        #                         each["Name"]
-        #                         + " at "
-        #                         + each["Posted Price"]
-        #                         + " is currently best buy price"
-        #                     )
-        #             except NoSuchElementException:
-        #                 print("Order not found")
+            replace_sell_orders = order_checker.check_sell_orders()
 
-        #         headers = doRecaptcha(
-        #             player_list, browser, "sell", headers, True, card_series_link, browser
-        #         )
+            sell_orders.execute_sell_orders(replace_sell_orders)
 
         except KeyboardInterrupt:
             print("STOPPING PROGRAM")
             print("CANCELLING ORDERS...")
-            break
+            headers.delete_cookie()
+            exit()
 except Exception:
+    headers.delete_cookie()
     print(traceback.format_exc())
     playsound(error_sound_path)

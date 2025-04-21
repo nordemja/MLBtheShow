@@ -27,23 +27,21 @@ class BuyOrders:
         self.driver = browser.driver
         self.max_buy_orders = max_buy_orders
         self.max_total_listings = max_total_listings
-        self.players_to_buy = []
         self.stubs = Stubs(self.headers)
 
-    def execute_buy_orders(self):
+    def execute_buy_orders(self, players_to_buy: list[dict]):
         print("Executing buy orders....")
 
-        self._select_players()
-
-        if self.players_to_buy:
+        if players_to_buy:
             # Once we have the players to buy, solve CAPTCHA and place orders
             auth_token = AuthToken(headers=self.headers)
             captcha_solver = CaptchaSolver()
-            captcha_solver.send_captcha_requests(self.players_to_buy)
-            auth_token.get_auth_tokens(self.players_to_buy)
+            captcha_solver.send_captcha_requests(players_to_buy)
+            auth_token.get_auth_tokens(players_to_buy)
+            self._get_item_buy_price(player_list=players_to_buy)
 
             players_to_buy_with_captcha_tokens = captcha_solver.get_captcha_tokens(
-                self.players_to_buy
+                players_to_buy
             )
 
             self._place_buy_orders(players_to_buy_with_captcha_tokens)
@@ -51,7 +49,9 @@ class BuyOrders:
 
         return self.headers
 
-    def _select_players(self):
+    def select_players(self):
+
+        players_to_buy = []
 
         for listing in self.listings:
             name = listing["player name"]
@@ -67,9 +67,11 @@ class BuyOrders:
                 break
 
             print(listing)
-            self.players_to_buy.append(listing)
+            players_to_buy.append(listing)
             self.buy_order_length += 1
             self.total_open_listing_length += 1
+
+        return players_to_buy
 
     def _is_order_placed(self, player_name):
         return any(order["Name"] == player_name for order in self.open_orders)
@@ -79,6 +81,13 @@ class BuyOrders:
             self.buy_order_length < self.max_buy_orders
             and self.total_open_listing_length < self.max_total_listings
         )
+
+    def _get_item_buy_price(self, player_list):
+        for player in player_list:
+            response = requests.get(
+                f"{self.single_item_api_path}?uuid={player['uuid']}"
+            ).json()
+            player["buy amount"] = response["best_buy_price"]
 
     def _place_buy_orders(self, player_list):
         for player in player_list:

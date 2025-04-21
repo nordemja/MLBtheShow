@@ -12,18 +12,16 @@ class SellOrders:
         self.headers = headers
         self.driver = browser.driver
 
-    def execute_sell_orders(self):
+    def execute_sell_orders(self, players_to_sell: list[dict]):
         print("Executing sell orders....")
 
-        sellable_players = self._fetch_sellable_players()
-
-        if sellable_players:
+        if players_to_sell:
             # Once we have the players to sell, solve CAPTCHA and place orders
             auth_token = AuthToken(headers=self.headers)
             captcha_solver = CaptchaSolver()
-            captcha_solver.send_captcha_requests(sellable_players)
-            auth_token.get_auth_tokens(sellable_players)
-            self._get_item_sell_price(sellable_players)
+            captcha_solver.send_captcha_requests(players_to_sell)
+            auth_token.get_auth_tokens(players_to_sell)
+            self._get_item_sell_price(players_to_sell)
 
             sellable_players_with_captcha_tokens = captcha_solver.get_captcha_tokens(
                 sellable_players
@@ -34,7 +32,7 @@ class SellOrders:
 
         return self.headers
 
-    def _fetch_sellable_players(self):
+    def fetch_sellable_players(self):
         # This method fetches all completed orders and identifies which players are sellable
         completed_page = requests.get(self.completed_orders_path, headers=self.headers)
         soup = BeautifulSoup(completed_page.text, "html.parser")

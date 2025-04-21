@@ -15,6 +15,10 @@ class Headers:
         self.headers["cookie"] = new_cookie
         self._save_headers()
 
+    def delete_cookie(self):
+        del self.headers["cookie"]
+        self._save_headers()
+
     def _load_headers(self) -> dict:
         if not self.headers_path.exists():
             raise FileNotFoundError(f"Header file not found: {self.headers_path}")
