@@ -3,6 +3,7 @@ import os
 import time
 import requests
 
+
 class CaptchaSolver:
     """
     A class to interact with the 2Captcha API to solve CAPTCHA challenges.
