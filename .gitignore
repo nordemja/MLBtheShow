@@ -1,8 +1,5 @@
-debug.log
-.vscode/launch.json
-__pycache__/marketBot.cpython-39.pyc
+my_env/
+__pycache__/
 
 
-headers.json
-
-/market_bot/__pycache__
+market_bot/headers.json
