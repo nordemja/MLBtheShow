@@ -3,9 +3,6 @@ import os
 import time
 import requests
 
-from config.globals import CAPTCHA_SOLVER_SEND_LINK, CAPTCHA_SOLVER_GET_TOKEN_LINK
-
-
 class CaptchaSolver:
     """
     A class to interact with the 2Captcha API to solve CAPTCHA challenges.
@@ -36,29 +33,32 @@ class CaptchaSolver:
         Args:
             player_list (List[Dict]): List of player dictionaries with a "URL" key.
         """
-        # try:
         for player in player_list:
-            u1 = CAPTCHA_SOLVER_SEND_LINK.format(
-                api_key=self.api_key,
-                data_sitekey=self.data_sitekey,
-                player_url=player["URL"],
+            url = (
+                f"https://2captcha.com/in.php?key={self.api_key}"
+                f"&method=userrecaptcha"
+                f"&googlekey={self.data_sitekey}"
+                f"&pageurl={player['URL']}"
+                f"&json=1&invisible=1"
             )
-            response = requests.get(u1, timeout=10)
+            response = requests.get(url, timeout=10)
             request_id = int(response.json().get("request"))
             player["request_id"] = request_id
-            # except Exception:
-            #     print("FAILED SENDING TOKEN - TRYING AGAIN....")
-            #     continue
 
     def get_captcha_tokens(self, player_list: List[Dict]) -> List[Dict]:
         """
-        Retrieve CAPTCHA tokens from 2captcha API.
+        Retrieves the solved CAPTCHA tokens for a list of players from the 2Captcha API.
+
+        This method checks the status of CAPTCHA solving requests and waits for the tokens to be ready.
+        If a token is not ready, the player is moved to the end of the list and the process retries.
+        The process continues until all players have their CAPTCHA tokens.
 
         Args:
-            player_list (List[Dict]): List of player dictionaries with a "request_id" key.
+            player_list (List[Dict]): List of player dictionaries, each containing a "request_id" key
+                                    representing a CAPTCHA request that has been sent to the 2Captcha API.
 
         Returns:
-            List[Dict]: List of player dictionaries with added "form_token" values.
+            List[Dict]: List of player dictionaries with the additional key containing the solved CAPTCHA token.
         """
         ready_list = []
         start_time = time.time()
@@ -66,10 +66,12 @@ class CaptchaSolver:
         while i < len(player_list):
             while True:
                 try:
-                    u2 = CAPTCHA_SOLVER_GET_TOKEN_LINK.format(
-                        api_key=self.api_key, request_id=player_list[i]["request_id"]
+                    request_id = player_list[i]["request_id"]
+                    url = (
+                        f"https://2captcha.com/res.php?key={self.api_key}"
+                        f"&action=get&id={request_id}&json=1"
                     )
-                    response = requests.get(u2, timeout=10)
+                    response = requests.get(url, timeout=10)
                     if response.json().get("status") == 1:
                         form_token = response.json().get("request")
                         player_list[i]["form_token"] = form_token
@@ -77,16 +79,12 @@ class CaptchaSolver:
                         ready_list.append(player_list[i])
                         i += 1
                     else:
-                        # Move failed player to the end of the list and retry
-                        player_list.append(
-                            player_list.pop(player_list.index(player_list[i]))
-                        )
+                        player_list.append(player_list.pop(i))
                 except Exception as e:
                     print(f"Error retrieving token: {e}")
                 break
 
-            elapsed_time = time.time() - start_time
-            if elapsed_time > 60:
+            if time.time() - start_time > 60:
                 break
 
         return ready_list
