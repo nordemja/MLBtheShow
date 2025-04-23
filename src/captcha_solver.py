@@ -3,7 +3,6 @@ import os
 import time
 import requests
 
-
 class CaptchaSolver:
     """
     A class to interact with the 2Captcha API to solve CAPTCHA challenges.
@@ -29,7 +28,7 @@ class CaptchaSolver:
 
     def send_captcha_requests(self, player_list: List[Dict]) -> None:
         """
-        Send requests to 2Captcha API to solve CAPTCHA.
+        Send requests to 2captcha API to solve CAPTCHA.
 
         Args:
             player_list (List[Dict]): List of player dictionaries with a "URL" key.
