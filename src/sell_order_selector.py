@@ -26,7 +26,8 @@ class SellOrderSelector:
     def __init__(
         self,
         completed_orders_path: str,
-        headers: dict,
+        root_path: str,
+        headers_instance: dict,
     ):
         """
         Initializes the SellOrderSelector with the required request data.
@@ -37,7 +38,9 @@ class SellOrderSelector:
         """
 
         self.completed_orders_path = completed_orders_path
-        self.headers = headers
+        self.root_path = root_path
+        self.headers_instance = headers_instance
+        self.active_headers = self.headers_instance.get_headers()
 
     def fetch_sellable_players(self) -> List[Dict[str, str]]:
         """
@@ -46,13 +49,26 @@ class SellOrderSelector:
         Returns:
             List[Dict[str, str]]: A list of players who are sellable.
         """
-        completed_page = requests.get(
-            self.completed_orders_path, headers=self.headers, timeout=10
-        )
-        soup = BeautifulSoup(completed_page.text, "html.parser")
-        total_pages = int(soup.find("div", {"class": "pagination"}).find("a").text)
+
+        while True:
+            try:
+                completed_page = requests.get(
+                    self.completed_orders_path, headers=self.active_headers, timeout=10
+                )
+                soup = BeautifulSoup(completed_page.text, "html.parser")
+                total_pages = int(
+                    soup.find("div", {"class": "pagination"}).find("a").text
+                )
+                break
+            except Exception as e:
+                print(f"error: {e}")
+                self.headers_instance.get_and_update_new_auth_cookie(
+                    url=self.completed_orders_path
+                )
+                self.active_headers = self.headers_instance.get_headers()
 
         sell_players = []
+
         for page in range(1, total_pages + 1):
             print(f"PAGE: {page}")
             player_order_info = self._get_orders_from_page(page)
@@ -63,11 +79,9 @@ class SellOrderSelector:
                 player_name = row.contents[1].text.strip()
                 order_type = row.contents[3].text.strip().split()[0]
                 if order_type == "Bought":
-                    player_url = (
-                        "https://mlb23.theshow.com" + row.find("a")["href"].strip()
-                    )
+                    player_url = self.root_path + row.find("a")["href"].strip()
                     # Check if the player is sellable
-                    if self._get_total_sellable(player_url, self.headers) > 0:
+                    if self._get_total_sellable(player_url) > 0:
                         uuid = player_url.split("/")[-1]
                         sell_players.append(
                             {
@@ -80,7 +94,7 @@ class SellOrderSelector:
                     else:
                         break
 
-            return sell_players
+        return sell_players
 
     def _get_orders_from_page(self, page: int) -> List:
         """
@@ -92,15 +106,25 @@ class SellOrderSelector:
         Returns:
             List: The list of orders from the page.
         """
-        resp = requests.get(
-            f"{self.completed_orders_path}?page={page}&",
-            headers=self.headers,
-            timeout=10,
-        )
-        soup = BeautifulSoup(resp.text, "html.parser")
+        while True:
+            try:
+                resp = requests.get(
+                    f"{self.completed_orders_path}?page={page}&",
+                    headers=self.active_headers,
+                    timeout=10,
+                )
+                soup = BeautifulSoup(resp.text, "html.parser")
+                break
+            except Exception as e:
+                print(f"error: {e}")
+                self.headers_instance.get_and_update_new_auth_cookie(
+                    url=self.completed_orders_path
+                )
+                self.active_headers = self.headers_instance.get_headers()
+
         return soup.find("tbody").find_all("tr")
 
-    def _get_total_sellable(self, player_url: str, headers: dict) -> int:
+    def _get_total_sellable(self, player_url: str) -> int:
         """
         Get the total sellable count for a player.
 
@@ -111,15 +135,25 @@ class SellOrderSelector:
         Returns:
             int: The number of sellable items for the player.
         """
-        try:
-            player_page = requests.get(player_url, headers=headers, timeout=10)
-            soup = BeautifulSoup(player_page.text, "html.parser")
-            total_sellable = soup.find_all("div", {"class": "well"})
-            for each in total_sellable:
-                if "Sellable" in each.text.strip():
-                    total_sellable = each.text.strip()[-1]
-                    return int(total_sellable)
-        except Exception as e:
-            print(e)
+        while True:
+            try:
+                player_page = requests.get(
+                    player_url, headers=self.active_headers, timeout=10
+                )
+                soup = BeautifulSoup(player_page.text, "html.parser")
+                total_sellable = soup.find_all("div", {"class": "well"})
+                break
+
+            except Exception as e:
+                print(e)
+                self.headers_instance.get_and_update_new_auth_cookie(
+                    url=self.completed_orders_path
+                )
+                self.active_headers = self.headers_instance.get_headers()
+
+        for each in total_sellable:
+            if "Sellable" in each.text.strip():
+                total_sellable = each.text.strip()[-1]
+                return int(total_sellable)
 
         return 0

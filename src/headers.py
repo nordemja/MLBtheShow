@@ -31,7 +31,7 @@ class Headers:
             Saves the current headers to the JSON file.
     """
 
-    def __init__(self, headers_path: str):
+    def __init__(self, headers_path: str, browser):
         """
         Initialize the Headers manager.
 
@@ -39,6 +39,7 @@ class Headers:
             headers_path (str): Path to the JSON file containing header data.
         """
         self.headers_path = Path(headers_path)
+        self.browser = browser
         self.headers: Dict[str, str] = self._load_headers()
 
     def get_headers(self) -> Dict[str, str]:
@@ -60,6 +61,22 @@ class Headers:
         print("updating headers....")
         self.headers["cookie"] = new_cookie
         self._save_headers()
+
+    def get_and_update_new_auth_cookie(self, url: str) -> None:
+        """
+        Use the browser to fetch a new cookie from the given URL and update headers.
+
+        Args:
+            url (str): The URL to navigate to and retrieve the authentication cookie.
+        """
+        print("Refreshing cookie using browser...")
+        old_cookie = self.browser.session_cookie
+        self.browser.get_cookie_header_from_browser(url=url)
+        new_cookie = self.browser.session_cookie
+        if old_cookie != new_cookie:
+            self.update_cookie(new_cookie=new_cookie)
+        else:
+            print("Failed to retrieve cookie from browser.")
 
     def delete_cookie(self) -> None:
         """

@@ -30,7 +30,11 @@ class OpenOrders:
     """
 
     def __init__(
-        self, open_buy_orders_path: str, open_sell_orders_path: str, headers: dict
+        self,
+        open_buy_orders_path: str,
+        open_sell_orders_path: str,
+        root_path: str,
+        headers_instance: dict,
     ):
         """
         Initialize OpenOrders with URLs and headers.
@@ -42,7 +46,9 @@ class OpenOrders:
         """
         self.open_buy_orders_path = open_buy_orders_path
         self.open_sell_orders_path = open_sell_orders_path
-        self.headers = headers
+        self.root_path = root_path
+        self.headers_instance = headers_instance
+        self.active_headers = self.headers_instance.get_headers()
 
     def get_buy_orders(self) -> List[Dict[str, str]]:
         """
@@ -87,26 +93,31 @@ class OpenOrders:
         else:
             url = self.open_sell_orders_path
 
-        response = requests.get(url, headers=self.headers, timeout=10)
-        soup = BeautifulSoup(response.text, "html.parser")
+        while True:
+            try:
+                response = requests.get(url, headers=self.active_headers, timeout=10)
+                soup = BeautifulSoup(response.text, "html.parser")
+                rows = soup.find("tbody").find_all("tr")
+                break
 
-        try:
-            rows = soup.find("tbody").find_all("tr")
-            for row in rows:
-                player_name = row.contents[3].text.strip()
-                posted_price = row.contents[5].text.strip().replace(",", "")
-                order_id = row.get("id")
-                player_url = "https://mlb23.theshow.com" + row.find("a")["href"].strip()
+            except Exception as e:
+                print(f"error: {e}")
+                self.headers_instance.get_and_update_new_auth_cookie(url=url)
+                self.active_headers = self.headers_instance.get_headers()
 
-                order_list.append(
-                    {
-                        "Name": player_name,
-                        "Posted Price": posted_price,
-                        "URL": player_url,
-                        "Order ID": order_id,
-                    }
-                )
-        except AttributeError:
-            pass
+        for row in rows:
+            player_name = row.contents[3].text.strip()
+            posted_price = row.contents[5].text.strip().replace(",", "")
+            order_id = row.get("id")
+            player_url = self.root_path + row.find("a")["href"].strip()
+
+            order_list.append(
+                {
+                    "Name": player_name,
+                    "Posted Price": posted_price,
+                    "URL": player_url,
+                    "Order ID": order_id,
+                }
+            )
 
         return order_list

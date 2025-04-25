@@ -18,14 +18,15 @@ class AuthToken:
 
     """
 
-    def __init__(self, headers):
+    def __init__(self, headers_instance):
         """
         Initialize the AuthToken with required request headers.
 
         Args:
             headers (dict): HTTP headers to be used in GET requests.
         """
-        self.headers = headers
+        self.headers_instance = headers_instance
+        self.active_headers = self.headers_instance.get_headers()
 
     def get_auth_tokens(self, player_list):
         """
@@ -38,11 +39,22 @@ class AuthToken:
 
         """
         for player in player_list:
-            auth_token_list = []
-            response = requests.get(player["URL"], headers=self.headers, timeout=10)
-            soup = BeautifulSoup(response.text, "html.parser")
-            form_tags = soup.find_all("input", {"name": "authenticity_token"})
-            for tag in form_tags:
-                auth_token_list.append(tag.get("value"))
+            while True:
+                try:
+                    auth_token_list = []
+                    response = requests.get(
+                        player["URL"], headers=self.active_headers, timeout=10
+                    )
+                    soup = BeautifulSoup(response.text, "html.parser")
+                    form_tags = soup.find_all("input", {"name": "authenticity_token"})
+                    for tag in form_tags:
+                        auth_token_list.append(tag.get("value"))
 
-            player["auth_token_list"] = auth_token_list
+                    player["auth_token_list"] = auth_token_list
+                    break
+                except Exception as e:
+                    print(f"error: {e}")
+                    self.headers_instance.get_and_update_new_auth_cookie(
+                        url=player["URL"]
+                    )
+                    self.active_headers = self.headers_instance.get_headers()
