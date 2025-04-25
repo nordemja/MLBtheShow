@@ -38,7 +38,7 @@ class BuyOrderPlacer:
     def __init__(
         self,
         single_item_api_path,
-        headers,
+        headers_instance,
         browser,
     ):
         """
@@ -50,9 +50,10 @@ class BuyOrderPlacer:
             browser (BrowserSession): Browser session object containing the Selenium driver.
         """
         self.single_item_api_path = single_item_api_path
-        self.headers = headers
+        self.headers_instance = headers_instance
+        self.active_headers = self.headers_instance.get_headers()
         self.driver = browser.driver
-        self.stubs = Stubs(self.headers)
+        self.stubs = Stubs(self.headers_instance)
 
     def execute_buy_orders(self, players_to_buy: list[dict]):
         """
@@ -68,7 +69,7 @@ class BuyOrderPlacer:
         print("Executing buy orders....")
 
         if players_to_buy:
-            auth_token = AuthToken(headers=self.headers)
+            auth_token = AuthToken(headers_instance=self.headers_instance)
             captcha_solver = CaptchaSolver()
 
             captcha_solver.send_captcha_requests(players_to_buy)
@@ -82,7 +83,7 @@ class BuyOrderPlacer:
             self._place_buy_orders(players_to_buy_with_captcha_tokens)
             print("DONE PLACING BUY ORDERS")
 
-        return self.headers
+        return self.active_headers
 
     def _get_item_buy_price(self, player_list):
         """
@@ -155,7 +156,7 @@ class BuyOrderPlacer:
             send_post = requests.post(
                 f"{player_url}/create_buy_order",
                 form_data,
-                headers=self.headers,
+                headers=self.active_headers,
                 timeout=10,
             )
 

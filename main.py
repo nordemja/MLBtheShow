@@ -48,34 +48,37 @@ try:
 
     # dynamically set user authentication cookie
     browser.get_cookie_header_from_browser(url=card_series_link)
-    headers = Headers(headers_path=headers_file_path)
-    headers.update_cookie(new_cookie=browser.session_cookie)
-    active_headers = headers.get_headers()
+    headers_instance = Headers(headers_path=headers_file_path, browser=browser)
+    headers_instance.update_cookie(new_cookie=browser.session_cookie)
+    ACTIVE_HEADERS = headers_instance.get_headers()
 
     # get available stubs balance
-    stubs = Stubs(headers=active_headers)
+    stubs = Stubs(headers_instance=headers_instance)
     print(f"Stubs Balance: {stubs.get_stubs_amount(url=card_series_link)}")
 
     buy_order_placer = BuyOrderPlacer(
         single_item_api_path=SINGLE_ITEM_LISTING_API_PATH,
-        headers=active_headers,
+        headers_instance=headers_instance,
         browser=browser,
     )
     # intalize SellOrderSelector, OpenOrders, APIMapper, and Market classes
     # Also get corresponding api link to card_series_link
     sell_order_selector = SellOrderSelector(
-        completed_orders_path=COMPLETED_ORDERS_PATH, headers=active_headers
+        completed_orders_path=COMPLETED_ORDERS_PATH,
+        root_path=ROOT_PATH,
+        headers_instance=headers_instance,
     )
 
     sell_order_placer = SellOrderPlacer(
         single_item_api_path=SINGLE_ITEM_LISTING_API_PATH,
-        headers=active_headers,
+        headers_instance=headers_instance,
         browser=browser,
     )
     open_orders = OpenOrders(
         open_buy_orders_path=OPEN_BUY_ORDERS_PATH,
         open_sell_orders_path=OPEN_SELL_ORDERS_PATH,
-        headers=active_headers,
+        root_path=ROOT_PATH,
+        headers_instance=headers_instance,
     )
 
     api_mapper = APIMapper(
@@ -93,9 +96,7 @@ try:
             # get players to sell as a list then place sell orders
             players_to_sell = sell_order_selector.fetch_sellable_players()
 
-            active_headers = sell_order_placer.execute_sell_orders(
-                players_to_sell=players_to_sell
-            )
+            sell_order_placer.execute_sell_orders(players_to_sell=players_to_sell)
 
             # fetch all players available to flip from API and order by profit margin
             listings = market.fetch_listings()
@@ -122,9 +123,7 @@ try:
 
             # get players to buy as a list then place buy orders
             players_to_sell = sell_order_selector.fetch_sellable_players()
-            active_headers = sell_order_placer.execute_sell_orders(
-                players_to_sell=players_to_sell
-            )
+            sell_order_placer.execute_sell_orders(players_to_sell=players_to_sell)
 
             # get a list of the currently open buy orders
             open_buy_orders = open_orders.get_buy_orders()
@@ -150,17 +149,15 @@ try:
             replace_sell_orders = order_checker.check_sell_orders(
                 orders=open_sell_orders
             )
-            active_headers = sell_order_placer.execute_sell_orders(
-                players_to_sell=replace_sell_orders
-            )
+            sell_order_placer.execute_sell_orders(players_to_sell=replace_sell_orders)
 
         except KeyboardInterrupt:
             print("STOPPING PROGRAM")
             print("CANCELLING ORDERS...")
-            headers.delete_cookie()
+            headers_instance.delete_cookie()
             browser.close_browser()
 except Exception as e:
-    headers.delete_cookie()
+    headers_instance.delete_cookie()
     browser.close_browser()
     print(e)
     print(traceback.format_exc())

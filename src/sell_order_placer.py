@@ -41,7 +41,7 @@ class SellOrderPlacer:
     def __init__(
         self,
         single_item_api_path: str,
-        headers: dict,
+        headers_instance: dict,
         browser,
     ):
         """
@@ -53,23 +53,21 @@ class SellOrderPlacer:
             browser: An object wrapping a Selenium WebDriver for page interaction.
         """
         self.single_item_api_path = single_item_api_path
-        self.headers = headers
+        self.headers_instance = headers_instance
+        self.active_headers = self.headers_instance.get_headers()
         self.driver = browser.driver
 
-    def execute_sell_orders(self, players_to_sell: List[Dict[str, str]]) -> dict:
+    def execute_sell_orders(self, players_to_sell: List[Dict[str, str]]):
         """
         Execute the process of selling orders, including CAPTCHA solving, authentication, and placing orders.
 
         Args:
             players_to_sell (List[Dict[str, str]]): List of players to sell.
-
-        Returns:
-            dict: The updated headers after executing sell orders.
         """
         print("Executing sell orders....")
 
         if players_to_sell:
-            auth_token = AuthToken(headers=self.headers)
+            auth_token = AuthToken(headers_instance=self.headers_instance)
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_sell)
             auth_token.get_auth_tokens(players_to_sell)
@@ -81,8 +79,6 @@ class SellOrderPlacer:
             self._place_sell_orders(sellable_players_with_captcha_tokens)
 
             print("DONE EXECUTING SELL ORDERS")
-
-        return self.headers
 
     def _get_item_sell_price(self, player_list: List[Dict[str, str]]):
         """
@@ -97,7 +93,7 @@ class SellOrderPlacer:
             ).json()
             player["sell_price"] = response["best_sell_price"]
 
-    def _get_total_sellable(self, player_url: str, headers: dict) -> int:
+    def _get_total_sellable(self, player_url: str) -> int:
         """
         Get the total sellable count for a player.
 
@@ -108,16 +104,23 @@ class SellOrderPlacer:
         Returns:
             int: The number of sellable items for the player.
         """
-        try:
-            player_page = requests.get(player_url, headers=headers, timeout=10)
-            soup = BeautifulSoup(player_page.text, "html.parser")
-            total_sellable = soup.find_all("div", {"class": "well"})
-            for each in total_sellable:
-                if "Sellable" in each.text.strip():
-                    total_sellable = each.text.strip()[-1]
-                    return int(total_sellable)
-        except Exception as e:
-            print(e)
+        while True:
+            try:
+                player_page = requests.get(
+                    player_url, headers=self.active_headers, timeout=10
+                )
+                soup = BeautifulSoup(player_page.text, "html.parser")
+                total_sellable = soup.find_all("div", {"class": "well"})
+                break
+            except Exception as e:
+                print(f"error: {e}")
+                self.headers_instance.get_and_update_new_auth_cookie(url=player_url)
+                self.active_headers = self.headers_instance.get_headers()
+
+        for each in total_sellable:
+            if "Sellable" in each.text.strip():
+                total_sellable = each.text.strip()[-1]
+                return int(total_sellable)
 
         return 0
 
@@ -129,9 +132,7 @@ class SellOrderPlacer:
             player_list (List[Dict[str, str]]): The list of players to place sell orders for.
         """
         for player in player_list:
-            sellable_before = self._get_total_sellable(
-                player_url=player["URL"], headers=self.headers
-            )
+            sellable_before = self._get_total_sellable(player_url=player["URL"])
             self._inject_captcha_token_into_webpage(
                 player_url=player["URL"], form_token=player["form_token"]
             )
@@ -172,13 +173,11 @@ class SellOrderPlacer:
             send_post = requests.post(
                 player["URL"] + "/create_sell_order",
                 form_data,
-                headers=self.headers,
+                headers=self.active_headers,
                 timeout=10,
             )
 
-        sellable_after = self._get_total_sellable(
-            player_url=player["URL"], headers=self.headers
-        )
+        sellable_after = self._get_total_sellable(player_url=player["URL"])
 
         if sellable_after != sellable_before:
             print(sellable_after)
