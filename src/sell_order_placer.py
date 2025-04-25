@@ -2,6 +2,8 @@ from typing import List, Dict
 from bs4 import BeautifulSoup
 import requests
 
+from config.globals import SELL_ORDER_OVERBID
+
 from .captcha_solver import CaptchaSolver
 from .auth_token import AuthToken
 
@@ -167,7 +169,7 @@ class SellOrderPlacer:
         for token in player["auth_token_list"]:
             form_data = {
                 "authenticity_token": token,
-                "price": player["sell_price"] - 25,
+                "price": player["sell_price"] - SELL_ORDER_OVERBID,
                 "g-recaptcha-response": player["form_token"],
             }
             send_post = requests.post(

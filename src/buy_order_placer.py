@@ -1,5 +1,7 @@
 import requests
 
+from config.globals import BUY_ORDER_OVERBID
+
 from .captcha_solver import CaptchaSolver
 from .auth_token import AuthToken
 from .stubs import Stubs
@@ -150,7 +152,7 @@ class BuyOrderPlacer:
         for each in auth_token_list:
             form_data = {
                 "authenticity_token": each,
-                "price": buy_amount + 25,
+                "price": buy_amount + BUY_ORDER_OVERBID,
                 "g-recaptcha-response": form_token,
             }
             send_post = requests.post(

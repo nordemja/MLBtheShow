@@ -10,3 +10,6 @@ COMMUNITY_MARKET_PATH: Final[str] = "https://mlb23.theshow.com/community_market"
 COMPLETED_ORDERS_PATH: Final[str] = "https://mlb23.theshow.com/orders/completed_orders"  # noqa: E501
 OPEN_BUY_ORDERS_PATH: Final[str] = "https://mlb23.theshow.com/orders/buy_orders"
 OPEN_SELL_ORDERS_PATH: Final[str] = "https://mlb23.theshow.com/orders/sell_orders"
+
+BUY_ORDER_OVERBID: Final[int] = 25
+SELL_ORDER_OVERBID: Final[int] = 25
