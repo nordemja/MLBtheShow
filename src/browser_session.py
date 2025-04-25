@@ -63,7 +63,7 @@ class BrowserSession:
         desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
         options = uc.ChromeOptions()
         options.add_argument("--user-data-dir=C:/Users/justi/chrome_user_data_copy")
-        options.add_argument("--profile-directory=Profile 2")
+        options.add_argument("--profile-directory=Default")
 
         self.driver = uc.Chrome(
             options=options, desired_capabilities=desired_capabilities
