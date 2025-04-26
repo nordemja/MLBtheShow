@@ -1,8 +1,10 @@
 import time
 import json
 import sys
+import random
 import undetected_chromedriver as uc
 
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
@@ -59,15 +61,34 @@ class BrowserSession:
         Launch a Chrome browser session with a specific user profile and
         enable logging of performance (network) events.
         """
+
+        user_agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/119.0.0.0 Safari/537.36"
+        )
+
         desired_capabilities = DesiredCapabilities.CHROME
         desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
         options = uc.ChromeOptions()
-        options.add_argument("--user-data-dir=C:/Users/justi/chrome_user_data_copy")
-        options.add_argument("--profile-directory=Default")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--window-size=1920x1080")
+        options.add_argument(f"--user-agent={user_agent}")
+        options.add_argument("--user-data-dir=C:/Users/justi/jnordeman")
+        options.add_argument("--profile-directory=Profile 2")
 
         self.driver = uc.Chrome(
             options=options, desired_capabilities=desired_capabilities
         )
+
+        # 🔸 Simulate a human-like mouse move to avoid detection
+        actions = ActionChains(self.driver)
+        x_offset = random.randint(5, 100)
+        y_offset = random.randint(5, 100)
+        actions.move_by_offset(x_offset, y_offset).perform()
+        time.sleep(random.uniform(3, 6))
 
     def close_browser(self):
         """
@@ -88,7 +109,7 @@ class BrowserSession:
         """
         print("getting auth cookie......")
         self.driver.get(url)
-        time.sleep(10)
+        time.sleep(5)
 
         logs = self.driver.get_log("performance")
         for entry in logs:
