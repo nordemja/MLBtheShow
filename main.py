@@ -100,13 +100,16 @@ try:
     while True:
         try:
             # get players to sell as a list then place sell orders
+            sell_order_selector.active_headers = headers_instance.get_headers()
             players_to_sell = sell_order_selector.fetch_sellable_players()
 
+            sell_order_placer.active_headers = headers_instance.get_headers()
             sell_order_placer.execute_sell_orders(players_to_sell=players_to_sell)
 
             # fetch all players available to flip from API and order by profit margin
             listings = market.fetch_listings()
 
+            open_orders.active_headers = headers_instance.get_headers()
             open_order_list = open_orders.get_all_open_orders()
             CURRENT_BUY_ORDER_LENGTH = len(open_orders.get_buy_orders())
             OPEN_LISTING_LENGTH = len(open_order_list)
@@ -121,15 +124,18 @@ try:
             players_to_buy = buy_order_selector.select_players()
 
             # place buy orders
+            buy_order_placer.active_headers = headers_instance.get_headers()
             active_headers = buy_order_placer.execute_buy_orders(
                 players_to_buy=players_to_buy
             )
 
             # get players to buy as a list then place buy orders
+            sell_order_selector.active_headers = headers_instance.get_headers()
             players_to_sell = sell_order_selector.fetch_sellable_players()
             sell_order_placer.execute_sell_orders(players_to_sell=players_to_sell)
 
             # get a list of the currently open buy orders
+            open_orders.active_headers = headers_instance.get_headers()
             open_buy_orders = open_orders.get_buy_orders()
             browser.driver.get(OPEN_BUY_ORDERS_PATH)
             time.sleep(3)
@@ -140,11 +146,14 @@ try:
 
             # check that active buy order is best price, cancel and replace order if not
             replace_buy_orders = order_checker.check_buy_orders(orders=open_buy_orders)
+
+            buy_order_placer.active_headers = headers_instance.get_headers()
             active_headers = buy_order_placer.execute_buy_orders(
                 players_to_buy=replace_buy_orders
             )
 
             # get a list of the currently open sell orders
+            open_orders.active_headers = headers_instance.get_headers()
             open_sell_orders = open_orders.get_sell_orders()
             browser.driver.get(OPEN_SELL_ORDERS_PATH)
             time.sleep(3)
@@ -153,6 +162,8 @@ try:
             replace_sell_orders = order_checker.check_sell_orders(
                 orders=open_sell_orders
             )
+
+            sell_order_placer.active_headers = headers_instance.get_headers()
             sell_order_placer.execute_sell_orders(players_to_sell=replace_sell_orders)
 
         except KeyboardInterrupt:

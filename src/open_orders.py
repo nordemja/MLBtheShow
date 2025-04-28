@@ -48,7 +48,7 @@ class OpenOrders:
         self.open_sell_orders_path = open_sell_orders_path
         self.root_path = root_path
         self.headers_instance = headers_instance
-        self.active_headers = self.headers_instance.get_headers()
+        self.active_headers = None
 
     def get_buy_orders(self) -> List[Dict[str, str]]:
         """

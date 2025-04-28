@@ -40,7 +40,7 @@ class SellOrderSelector:
         self.completed_orders_path = completed_orders_path
         self.root_path = root_path
         self.headers_instance = headers_instance
-        self.active_headers = self.headers_instance.get_headers()
+        self.active_headers = None
 
     def fetch_sellable_players(self) -> List[Dict[str, str]]:
         """

@@ -56,8 +56,8 @@ class SellOrderPlacer:
         """
         self.single_item_api_path = single_item_api_path
         self.headers_instance = headers_instance
-        self.active_headers = self.headers_instance.get_headers()
         self.driver = browser.driver
+        self.active_headers = None
 
     def execute_sell_orders(self, players_to_sell: List[Dict[str, str]]):
         """
@@ -70,6 +70,8 @@ class SellOrderPlacer:
 
         if players_to_sell:
             auth_token = AuthToken(headers_instance=self.headers_instance)
+            auth_token.active_headers = self.active_headers
+
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_sell)
             auth_token.get_auth_tokens(players_to_sell)

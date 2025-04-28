@@ -53,9 +53,9 @@ class BuyOrderPlacer:
         """
         self.single_item_api_path = single_item_api_path
         self.headers_instance = headers_instance
-        self.active_headers = self.headers_instance.get_headers()
         self.driver = browser.driver
         self.stubs = Stubs(self.headers_instance)
+        self.active_headers = None
 
     def execute_buy_orders(self, players_to_buy: list[dict]):
         """
@@ -72,8 +72,9 @@ class BuyOrderPlacer:
 
         if players_to_buy:
             auth_token = AuthToken(headers_instance=self.headers_instance)
-            captcha_solver = CaptchaSolver()
+            auth_token.active_headers = self.active_headers
 
+            captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_buy)
             auth_token.get_auth_tokens(players_to_buy)
             self._get_item_buy_price(player_list=players_to_buy)

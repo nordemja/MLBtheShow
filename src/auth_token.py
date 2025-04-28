@@ -26,7 +26,7 @@ class AuthToken:
             headers (dict): HTTP headers to be used in GET requests.
         """
         self.headers_instance = headers_instance
-        self.active_headers = self.headers_instance.get_headers()
+        self.active_headers = None
 
     def get_auth_tokens(self, player_list):
         """
