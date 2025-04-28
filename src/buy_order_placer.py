@@ -113,6 +113,7 @@ class BuyOrderPlacer:
             self._inject_captcha_token_into_webpage(
                 player_url=player["URL"], form_token=player["form_token"]
             )
+            print(player)
             self._buy_order_post_request(
                 player_url=player["URL"],
                 buy_amount=player["buy amount"],
