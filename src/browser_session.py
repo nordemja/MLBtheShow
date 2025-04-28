@@ -1,10 +1,8 @@
 import time
 import json
 import sys
-import random
 import undetected_chromedriver as uc
 
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
@@ -82,13 +80,6 @@ class BrowserSession:
         self.driver = uc.Chrome(
             options=options, desired_capabilities=desired_capabilities
         )
-
-        # 🔸 Simulate a human-like mouse move to avoid detection
-        actions = ActionChains(self.driver)
-        x_offset = random.randint(5, 100)
-        y_offset = random.randint(5, 100)
-        actions.move_by_offset(x_offset, y_offset).perform()
-        time.sleep(random.uniform(3, 6))
 
     def close_browser(self):
         """

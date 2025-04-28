@@ -97,7 +97,15 @@ class OpenOrders:
             try:
                 response = requests.get(url, headers=self.active_headers, timeout=10)
                 soup = BeautifulSoup(response.text, "html.parser")
-                rows = soup.find("tbody").find_all("tr")
+                tbody = soup.find("tbody")
+                if tbody:
+                    rows = tbody.find_all("tr")
+                else:
+                    well_div = soup.find("div", class_="well")
+                    if well_div and "Nothing found" in well_div.get_text(strip=True):
+                        print(f"No {order_type} orders found")
+                        return []
+                    raise ValueError("Neither tbody nor 'Nothing found' message found.")
                 break
 
             except Exception as e:

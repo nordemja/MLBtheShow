@@ -90,8 +90,9 @@ class SellOrderPlacer:
             player_list (List[Dict[str, str]]): The list of players to get sell prices for.
         """
         for player in player_list:
+            player_uuid = player["URL"].split("/")[-1]
             response = requests.get(
-                f"{self.single_item_api_path}?uuid={player['uuid']}", timeout=10
+                f"{self.single_item_api_path}?uuid={player_uuid}", timeout=10
             ).json()
             player["sell_price"] = response["best_sell_price"]
 

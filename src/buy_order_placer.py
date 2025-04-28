@@ -95,8 +95,9 @@ class BuyOrderPlacer:
             player_list (list): Players to be updated with pricing info.
         """
         for player in player_list:
+            player_uuid = player["URL"].split("/")[-1]
             response = requests.get(
-                f"{self.single_item_api_path}?uuid={player['uuid']}", timeout=10
+                f"{self.single_item_api_path}?uuid={player_uuid}", timeout=10
             ).json()
             player["buy amount"] = response["best_buy_price"]
 

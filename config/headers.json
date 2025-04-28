@@ -1,5 +1,5 @@
 {
-    "authority": "mlb23.theshow.com",
+    "authority": "mlb25.theshow.com",
     "accept": "text/html, application/xhtml+xml",
     "accept-language": "en-US,en;q=0.9",
     "referer": "https://my.account.sony.com/",
@@ -10,6 +10,5 @@
     "sec-ch-ua": "^^Google",
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": "^^Windows^^",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-    "cookie": "_ga=GA1.1.1389227747.1745643935; tsn_token=eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MjEzNjM2LCJ1c2VybmFtZSI6ImFuZ3J5X3BsYXR5cHVzNjJfUFNOIiwicGljdHVyZSI6Imh0dHBzOi8vdGhlc2hvd25hdGlvbi1wcm9kdWN0aW9uLnMzLmFtYXpvbmF3cy5jb20vZm9ydW1faWNvbnMvbWxiMjUvaWNvbl90aGVzaG93X2xvZ28ud2VicCIsImdyb3VwcyI6W119.pO4I30SgrkO5c27-w8G1qBeoLNpV-aM727aR5g7tlD4; ab.storage.userId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5=%7B%22g%22%3A%225704733%22%2C%22c%22%3A1745683579484%2C%22l%22%3A1745683579484%7D; ab.storage.deviceId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5=%7B%22g%22%3A%224740cd5a-53ff-27da-5cee-2c90f1bf1b83%22%2C%22c%22%3A1745683579485%2C%22l%22%3A1745683579485%7D; tsn_last_url=Qcppt8EQj2h2pgzQph4KcsVBcSZuvvw5UCRzitOjbSDpE1RhImrcCMd1GXyyv9fDCvx5VC5qi_7lm_d48Mh-I9mMgcL4T9lAliD6m9tbrjhLFGRtUMyk-mn-azg_p1miC0SaEwYktyZkXIByLgGuVryVylyyblWZe4Y64lu0wMLdDcM-Z8aSHQ3PnFEkxJvElSFoyqJBljjJu4mt-mKUCw2eYsrxJA8jtyKPDdMv3WlFkIFAcZLW4tF1rCpQYsEXZdSQ-S5SUq5n7CXte0fLBOn_sm468ltKCXgP0DGa4a84yUc8Yty5ZLf3XDb-feUAFtb3ecqN_Xnca77lnAOPGw%3D%3D; _tsn_session=7970ef6c047e9205770646720de72ca3; _ga_EJKYYHZPBF=GS1.1.1745699286.3.1.1745699419.0.0.0; ab.storage.sessionId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5=%7B%22g%22%3A%225da55e83-6f95-f051-6923-9ab6e14897cf%22%2C%22e%22%3A1745701220003%2C%22c%22%3A1745699294707%2C%22l%22%3A1745699420003%7D; _gid=GA1.3.1132519331.1745699420"
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
 }
