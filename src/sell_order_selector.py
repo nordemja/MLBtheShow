@@ -40,7 +40,7 @@ class SellOrderSelector:
         self.completed_orders_path = completed_orders_path
         self.root_path = root_path
         self.headers_instance = headers_instance
-        self.active_headers = self.headers_instance.get_headers()
+        self.active_headers = None
 
     def fetch_sellable_players(self) -> List[Dict[str, str]]:
         """
@@ -56,9 +56,11 @@ class SellOrderSelector:
                     self.completed_orders_path, headers=self.active_headers, timeout=10
                 )
                 soup = BeautifulSoup(completed_page.text, "html.parser")
-                total_pages = int(
-                    soup.find("div", {"class": "pagination"}).find("a").text
-                )
+                pagination_div = soup.find("div", {"class": "pagination"})
+                if pagination_div and pagination_div.find("a"):
+                    total_pages = int(pagination_div.find("a").text)
+                else:
+                    total_pages = 1
                 break
             except Exception as e:
                 print(f"error: {e}")

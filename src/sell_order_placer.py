@@ -2,6 +2,8 @@ from typing import List, Dict
 from bs4 import BeautifulSoup
 import requests
 
+from config.globals import SELL_ORDER_OVERBID
+
 from .captcha_solver import CaptchaSolver
 from .auth_token import AuthToken
 
@@ -54,8 +56,8 @@ class SellOrderPlacer:
         """
         self.single_item_api_path = single_item_api_path
         self.headers_instance = headers_instance
-        self.active_headers = self.headers_instance.get_headers()
         self.driver = browser.driver
+        self.active_headers = None
 
     def execute_sell_orders(self, players_to_sell: List[Dict[str, str]]):
         """
@@ -68,6 +70,8 @@ class SellOrderPlacer:
 
         if players_to_sell:
             auth_token = AuthToken(headers_instance=self.headers_instance)
+            auth_token.active_headers = self.active_headers
+
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_sell)
             auth_token.get_auth_tokens(players_to_sell)
@@ -78,7 +82,7 @@ class SellOrderPlacer:
             )
             self._place_sell_orders(sellable_players_with_captcha_tokens)
 
-            print("DONE EXECUTING SELL ORDERS")
+        print("DONE EXECUTING SELL ORDERS\n")
 
     def _get_item_sell_price(self, player_list: List[Dict[str, str]]):
         """
@@ -88,8 +92,9 @@ class SellOrderPlacer:
             player_list (List[Dict[str, str]]): The list of players to get sell prices for.
         """
         for player in player_list:
+            player_uuid = player["URL"].split("/")[-1]
             response = requests.get(
-                f"{self.single_item_api_path}?uuid={player['uuid']}", timeout=10
+                f"{self.single_item_api_path}?uuid={player_uuid}", timeout=10
             ).json()
             player["sell_price"] = response["best_sell_price"]
 
@@ -132,6 +137,7 @@ class SellOrderPlacer:
             player_list (List[Dict[str, str]]): The list of players to place sell orders for.
         """
         for player in player_list:
+            print(player["player name"])
             sellable_before = self._get_total_sellable(player_url=player["URL"])
             self._inject_captcha_token_into_webpage(
                 player_url=player["URL"], form_token=player["form_token"]
@@ -149,11 +155,14 @@ class SellOrderPlacer:
             player_url (str): The URL of the player to inject the CAPTCHA token into.
             form_token (str): The CAPTCHA form token to inject.
         """
+        print("loading page")
         self.driver.get(player_url)
+        print("page loaded")
         wirte_tokon_js = (
             f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
         )
         self.driver.execute_script(wirte_tokon_js)
+        print("injected captcha token")
 
     def _sell_order_post_request(self, player: Dict[str, any], sellable_before: int):
         """
@@ -167,7 +176,7 @@ class SellOrderPlacer:
         for token in player["auth_token_list"]:
             form_data = {
                 "authenticity_token": token,
-                "price": player["sell_price"] - 25,
+                "price": player["sell_price"] - SELL_ORDER_OVERBID,
                 "g-recaptcha-response": player["form_token"],
             }
             send_post = requests.post(

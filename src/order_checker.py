@@ -43,7 +43,6 @@ class OrderChecker:
         """
         self.single_item_api_path = single_item_api_path
         self.driver = browser.driver
-        self.player_list: List[Dict[str, str | int]] = []
 
     def check_buy_orders(
         self, orders: List[Dict[str, str]]
@@ -57,13 +56,14 @@ class OrderChecker:
         Returns:
             List[Dict[str, str | int]]: Players whose buy orders were canceled.
         """
+        player_list: List[Dict[str, str | int]] = []
         for order in orders:
             uuid = order["URL"].split("/")[-1]
             current_buy_price = self._get_current_buy_amount(uuid)
             posted_price = int(order["Posted Price"])
 
             if posted_price < current_buy_price:
-                self.player_list.append(
+                player_list.append(
                     {
                         "player name": order["Name"],
                         "buy amount": current_buy_price,
@@ -74,7 +74,7 @@ class OrderChecker:
             else:
                 print(f"{order['Name']} at {posted_price} is currently best sell price")
 
-        return self.player_list
+        return player_list
 
     def check_sell_orders(
         self, orders: List[Dict[str, str]]
@@ -88,13 +88,14 @@ class OrderChecker:
         Returns:
             List[Dict[str, str | int]]: Players whose sell orders were canceled.
         """
+        player_list: List[Dict[str, str | int]] = []
         for order in orders:
             uuid = order["URL"].split("/")[-1]
             current_sell_price = self._get_current_sell_amount(uuid)
             posted_price = int(order["Posted Price"])
 
             if posted_price > current_sell_price:
-                self.player_list.append(
+                player_list.append(
                     {
                         "player name": order["Name"],
                         "sell amount": current_sell_price,
@@ -105,7 +106,7 @@ class OrderChecker:
             else:
                 print(f"{order['Name']} at {posted_price} is currently best buy price")
 
-        return self.player_list
+        return player_list
 
     def _cancel_order(self, order: Dict[str, str]):
         """

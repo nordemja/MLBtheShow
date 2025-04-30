@@ -67,6 +67,8 @@ class APIMapper:
                 self._map_team_id(value)
             elif web_key in ["max_best_buy_price", "min_best_buy_price"]:
                 self._map_price_range(web_key, value)
+            elif web_key == "rarity_id":
+                self._map_rarity(web_key, value)
             elif web_key == "subdomain":
                 continue
             else:
@@ -83,6 +85,23 @@ class APIMapper:
         if team_id in self.team_id_map:
             self.params["team"] = self.team_id_map[team_id]
 
+    def _map_rarity(self, web_key: str, value: str):
+
+        web_key = "rarity"
+
+        if value == "0":
+            value = "common"
+        elif value == "1":
+            value = "bronze"
+        elif value == "2":
+            value = "silver"
+        elif value == "3":
+            value = "gold"
+        else:
+            value = "diamond"
+
+        self.params[web_key] = value
+
     def _map_price_range(self, web_key: str, value: str):
         """
         Transforms price range parameters (max and min buy price) into API-compatible format.
@@ -92,9 +111,17 @@ class APIMapper:
             value (str): The value associated with the price range parameter.
         """
         if web_key == "max_best_buy_price":
-            self.params["max_best_sell_price"] = value
+            web_key = "max_best_sell_price"
+
+        # minimum buy now price
+        elif web_key == "min_best_sell_price":
+            web_key = "min_best_buy_price"
+
+        # minimum sell now price
         elif web_key == "min_best_buy_price":
-            self.params["min_best_sell_price"] = value
+            web_key = "min_best_sell_price"
+
+        self.params[web_key] = value
 
     def get_api_url(self) -> str:
         """
@@ -103,5 +130,4 @@ class APIMapper:
         Returns:
             str: The full API URL including encoded query parameters.
         """
-        print(f"{self.base_api_path}?{urlencode(self.params)}")
         return f"{self.base_api_path}?{urlencode(self.params)}"

@@ -1,5 +1,7 @@
 import requests
 
+from config.globals import BUY_ORDER_OVERBID
+
 from .captcha_solver import CaptchaSolver
 from .auth_token import AuthToken
 from .stubs import Stubs
@@ -51,9 +53,9 @@ class BuyOrderPlacer:
         """
         self.single_item_api_path = single_item_api_path
         self.headers_instance = headers_instance
-        self.active_headers = self.headers_instance.get_headers()
         self.driver = browser.driver
         self.stubs = Stubs(self.headers_instance)
+        self.active_headers = None
 
     def execute_buy_orders(self, players_to_buy: list[dict]):
         """
@@ -70,8 +72,9 @@ class BuyOrderPlacer:
 
         if players_to_buy:
             auth_token = AuthToken(headers_instance=self.headers_instance)
-            captcha_solver = CaptchaSolver()
+            auth_token.active_headers = self.active_headers
 
+            captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_buy)
             auth_token.get_auth_tokens(players_to_buy)
             self._get_item_buy_price(player_list=players_to_buy)
@@ -83,8 +86,6 @@ class BuyOrderPlacer:
             self._place_buy_orders(players_to_buy_with_captcha_tokens)
             print("DONE PLACING BUY ORDERS")
 
-        return self.active_headers
-
     def _get_item_buy_price(self, player_list):
         """
         Updates each player in the list with the best current buy price.
@@ -93,8 +94,9 @@ class BuyOrderPlacer:
             player_list (list): Players to be updated with pricing info.
         """
         for player in player_list:
+            player_uuid = player["URL"].split("/")[-1]
             response = requests.get(
-                f"{self.single_item_api_path}?uuid={player['uuid']}", timeout=10
+                f"{self.single_item_api_path}?uuid={player_uuid}", timeout=10
             ).json()
             player["buy amount"] = response["best_buy_price"]
 
@@ -106,6 +108,9 @@ class BuyOrderPlacer:
             player_list (list): Players with all necessary tokens and prices.
         """
         for player in player_list:
+
+            print({"player name": player["player name"], "URL": player["URL"]})
+
             self._inject_captcha_token_into_webpage(
                 player_url=player["URL"], form_token=player["form_token"]
             )
@@ -115,6 +120,7 @@ class BuyOrderPlacer:
                 form_token=player["form_token"],
                 auth_token_list=player["auth_token_list"],
             )
+        print("\n")
 
     def _inject_captcha_token_into_webpage(self, player_url, form_token):
         """
@@ -124,11 +130,14 @@ class BuyOrderPlacer:
             player_url (str): Webpage URL of the player.
             form_token (str): CAPTCHA token to inject.
         """
+        print("loading page")
         self.driver.get(player_url)
+        print("page loaded")
         write_token_js = (
             f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
         )
         self.driver.execute_script(write_token_js)
+        print("injected captcha token")
 
     def _buy_order_post_request(
         self, player_url, buy_amount, form_token, auth_token_list
@@ -150,7 +159,7 @@ class BuyOrderPlacer:
         for each in auth_token_list:
             form_data = {
                 "authenticity_token": each,
-                "price": buy_amount + 25,
+                "price": buy_amount + BUY_ORDER_OVERBID,
                 "g-recaptcha-response": form_token,
             }
             send_post = requests.post(
