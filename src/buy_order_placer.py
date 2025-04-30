@@ -86,8 +86,6 @@ class BuyOrderPlacer:
             self._place_buy_orders(players_to_buy_with_captcha_tokens)
             print("DONE PLACING BUY ORDERS")
 
-        return self.active_headers
-
     def _get_item_buy_price(self, player_list):
         """
         Updates each player in the list with the best current buy price.
@@ -110,16 +108,19 @@ class BuyOrderPlacer:
             player_list (list): Players with all necessary tokens and prices.
         """
         for player in player_list:
+
+            print({"player name": player["player name"], "URL": player["URL"]})
+
             self._inject_captcha_token_into_webpage(
                 player_url=player["URL"], form_token=player["form_token"]
             )
-            print(player)
             self._buy_order_post_request(
                 player_url=player["URL"],
                 buy_amount=player["buy amount"],
                 form_token=player["form_token"],
                 auth_token_list=player["auth_token_list"],
             )
+        print("\n")
 
     def _inject_captcha_token_into_webpage(self, player_url, form_token):
         """
@@ -129,11 +130,14 @@ class BuyOrderPlacer:
             player_url (str): Webpage URL of the player.
             form_token (str): CAPTCHA token to inject.
         """
+        print("loading page")
         self.driver.get(player_url)
+        print("page loaded")
         write_token_js = (
             f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
         )
         self.driver.execute_script(write_token_js)
+        print("injected captcha token")
 
     def _buy_order_post_request(
         self, player_url, buy_amount, form_token, auth_token_list

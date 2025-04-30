@@ -82,7 +82,7 @@ class SellOrderPlacer:
             )
             self._place_sell_orders(sellable_players_with_captcha_tokens)
 
-            print("DONE EXECUTING SELL ORDERS")
+        print("DONE EXECUTING SELL ORDERS\n")
 
     def _get_item_sell_price(self, player_list: List[Dict[str, str]]):
         """
@@ -137,6 +137,7 @@ class SellOrderPlacer:
             player_list (List[Dict[str, str]]): The list of players to place sell orders for.
         """
         for player in player_list:
+            print(player["player name"])
             sellable_before = self._get_total_sellable(player_url=player["URL"])
             self._inject_captcha_token_into_webpage(
                 player_url=player["URL"], form_token=player["form_token"]
@@ -154,11 +155,14 @@ class SellOrderPlacer:
             player_url (str): The URL of the player to inject the CAPTCHA token into.
             form_token (str): The CAPTCHA form token to inject.
         """
+        print("loading page")
         self.driver.get(player_url)
+        print("page loaded")
         wirte_tokon_js = (
             f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
         )
         self.driver.execute_script(wirte_tokon_js)
+        print("injected captcha token")
 
     def _sell_order_post_request(self, player: Dict[str, any], sellable_before: int):
         """

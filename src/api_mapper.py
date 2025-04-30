@@ -130,5 +130,4 @@ class APIMapper:
         Returns:
             str: The full API URL including encoded query parameters.
         """
-        print(f"{self.base_api_path}?{urlencode(self.params)}")
         return f"{self.base_api_path}?{urlencode(self.params)}"

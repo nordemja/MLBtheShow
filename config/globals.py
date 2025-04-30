@@ -11,5 +11,5 @@ COMPLETED_ORDERS_PATH: Final[str] = "https://mlb25.theshow.com/orders/completed_
 OPEN_BUY_ORDERS_PATH: Final[str] = "https://mlb25.theshow.com/orders/buy_orders"
 OPEN_SELL_ORDERS_PATH: Final[str] = "https://mlb25.theshow.com/orders/sell_orders"
 
-BUY_ORDER_OVERBID: Final[int] = 5
-SELL_ORDER_OVERBID: Final[int] = 5
+BUY_ORDER_OVERBID: Final[int] = 1
+SELL_ORDER_OVERBID: Final[int] = 1

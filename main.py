@@ -26,7 +26,6 @@ from src.sell_order_placer import SellOrderPlacer
 from src.open_orders import OpenOrders
 from src.order_checker import OrderChecker
 
-
 # get path to config files
 error_sound_path = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "config", ERROR_SOUND_PATH
@@ -53,7 +52,7 @@ try:
 
     # get available stubs balance
     stubs = Stubs(headers_instance=headers_instance)
-    print(f"Stubs Balance: {stubs.get_stubs_amount(url=card_series_link)}")
+    print(f"Stubs Balance: {stubs.get_stubs_amount(url=card_series_link)}\n")
 
     # intalize rest of classes to be used
     buy_order_selector = BuyOrderSelector(
@@ -113,7 +112,7 @@ try:
             open_order_list = open_orders.get_all_open_orders()
             CURRENT_BUY_ORDER_LENGTH = len(open_orders.get_buy_orders())
             OPEN_LISTING_LENGTH = len(open_order_list)
-            print("open buy orders = ", CURRENT_BUY_ORDER_LENGTH)
+            print("open buy orders = ", CURRENT_BUY_ORDER_LENGTH, "\n")
 
             buy_order_selector.listings = listings
             buy_order_selector.open_orders = open_order_list
@@ -122,12 +121,11 @@ try:
 
             # get players to buy as a list
             players_to_buy = buy_order_selector.select_players()
+            print("\n")
 
             # place buy orders
             buy_order_placer.active_headers = headers_instance.get_headers()
-            active_headers = buy_order_placer.execute_buy_orders(
-                players_to_buy=players_to_buy
-            )
+            buy_order_placer.execute_buy_orders(players_to_buy=players_to_buy)
 
             # get players to buy as a list then place buy orders
             sell_order_selector.active_headers = headers_instance.get_headers()
@@ -148,9 +146,7 @@ try:
             replace_buy_orders = order_checker.check_buy_orders(orders=open_buy_orders)
 
             buy_order_placer.active_headers = headers_instance.get_headers()
-            active_headers = buy_order_placer.execute_buy_orders(
-                players_to_buy=replace_buy_orders
-            )
+            buy_order_placer.execute_buy_orders(players_to_buy=replace_buy_orders)
 
             # get a list of the currently open sell orders
             open_orders.active_headers = headers_instance.get_headers()
