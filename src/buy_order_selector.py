@@ -55,24 +55,37 @@ class BuyOrderSelector:
         players_to_buy = []
 
         for listing in self.listings:
-            name = listing["player name"]
-
-            if self._is_order_placed(name):
-                print(f"{name} already has an open order and is awaiting fulfillment")
-                continue
-
             if not self._check_listing_lengths():
                 print("Maximum listing length reached!")
                 print(f"Buy Orders Length: {self.buy_order_length}")
                 print(f"Total Buy/Sell Orders Length: {self.total_open_listing_length}")
                 break
 
-            print(listing)
-            players_to_buy.append(listing)
-            self.buy_order_length += 1
-            self.total_open_listing_length += 1
+            name = listing["player name"]
+
+            if self._is_order_placed(name):
+                print(f"{name} already has an open order and is awaiting fulfillment")
+                continue
+
+            if listing["profit"] > 0:
+                print(
+                    {
+                        "player name": listing["player name"],
+                        "buy amount": listing["buy amount"],
+                        "sell amount": listing["sell amount"],
+                        "profit": listing["profit"],
+                        "URL": listing["URL"],
+                    }
+                )
+                self._append_if_new(listing, players_to_buy)
+                self.buy_order_length += 1
+                self.total_open_listing_length += 1
 
         return players_to_buy
+
+    def _append_if_new(self, item, target_list):
+        if not any(d["player name"] == item["player name"] for d in target_list):
+            target_list.append(item)
 
     def _is_order_placed(self, player_name):
         """

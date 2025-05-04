@@ -66,6 +66,7 @@ try:
         single_item_api_path=SINGLE_ITEM_LISTING_API_PATH,
         headers_instance=headers_instance,
         browser=browser,
+        error_sound_path=error_sound_path,
     )
 
     sell_order_selector = SellOrderSelector(
@@ -78,6 +79,7 @@ try:
         single_item_api_path=SINGLE_ITEM_LISTING_API_PATH,
         headers_instance=headers_instance,
         browser=browser,
+        error_sound_path=error_sound_path,
     )
     open_orders = OpenOrders(
         open_buy_orders_path=OPEN_BUY_ORDERS_PATH,

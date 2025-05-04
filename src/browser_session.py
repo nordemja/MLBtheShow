@@ -70,7 +70,6 @@ class BrowserSession:
         desired_capabilities["goog:loggingPrefs"] = {"performance": "ALL"}
         options = uc.ChromeOptions()
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--disable-extensions")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920x1080")
         options.add_argument(f"--user-agent={user_agent}")

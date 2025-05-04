@@ -38,6 +38,7 @@ class AuthToken:
                                 with a list of token values extracted from the page.
 
         """
+        print("getting auth tokens....")
         for player in player_list:
             while True:
                 try:

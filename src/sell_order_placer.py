@@ -1,9 +1,10 @@
 from typing import List, Dict
-from bs4 import BeautifulSoup
+import concurrent.futures
 import requests
+from bs4 import BeautifulSoup
+from playsound import playsound
 
 from config.globals import SELL_ORDER_OVERBID
-
 from .captcha_solver import CaptchaSolver
 from .auth_token import AuthToken
 
@@ -45,6 +46,7 @@ class SellOrderPlacer:
         single_item_api_path: str,
         headers_instance: dict,
         browser,
+        error_sound_path,
     ):
         """
         Initializes the SellOrderPlacer instance.
@@ -57,6 +59,7 @@ class SellOrderPlacer:
         self.single_item_api_path = single_item_api_path
         self.headers_instance = headers_instance
         self.driver = browser.driver
+        self.error_sound_path = error_sound_path
         self.active_headers = None
 
     def execute_sell_orders(self, players_to_sell: List[Dict[str, str]]):
@@ -77,10 +80,16 @@ class SellOrderPlacer:
             auth_token.get_auth_tokens(players_to_sell)
             self._get_item_sell_price(players_to_sell)
 
-            sellable_players_with_captcha_tokens = captcha_solver.get_captcha_tokens(
-                players_to_sell
+            sellable_players_with_captcha_tokens, leftover_player_list = (
+                captcha_solver.get_captcha_tokens(players_to_sell)
             )
             self._place_sell_orders(sellable_players_with_captcha_tokens)
+
+            if len(leftover_player_list) > 0:
+                leftover_player_list_with_captcha_tokens, _ = (
+                    captcha_solver.get_captcha_tokens(leftover_player_list)
+                )
+                self._place_sell_orders(leftover_player_list_with_captcha_tokens)
 
         print("DONE EXECUTING SELL ORDERS\n")
 
@@ -91,6 +100,7 @@ class SellOrderPlacer:
         Args:
             player_list (List[Dict[str, str]]): The list of players to get sell prices for.
         """
+        print("getting item sell prices.....")
         for player in player_list:
             player_uuid = player["URL"].split("/")[-1]
             response = requests.get(
@@ -155,14 +165,37 @@ class SellOrderPlacer:
             player_url (str): The URL of the player to inject the CAPTCHA token into.
             form_token (str): The CAPTCHA form token to inject.
         """
-        print("loading page")
-        self.driver.get(player_url)
-        print("page loaded")
-        wirte_tokon_js = (
-            f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
-        )
-        self.driver.execute_script(wirte_tokon_js)
-        print("injected captcha token")
+
+        def load_page():
+            self.driver.get(player_url)
+
+        while True:
+            try:
+                self.driver.set_page_load_timeout(10)
+
+                print("loading page")
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(load_page)
+                    future.result(timeout=10)  # Hard timeout
+
+                print("page loaded")
+
+                self.driver.execute_script(
+                    f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
+                )
+                print("injected captcha token")
+                break
+
+            except concurrent.futures.TimeoutError:
+                playsound(self.error_sound_path)
+                print("Timeout loading page. Stopping load and refreshing...")
+                self.driver.refresh()
+
+            except Exception as e:
+                playsound(self.error_sound_path)
+                print(f"Error: {e}")
+                self.driver.refresh()
 
     def _sell_order_post_request(self, player: Dict[str, any], sellable_before: int):
         """
