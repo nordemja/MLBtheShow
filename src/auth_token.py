@@ -55,7 +55,5 @@ class AuthToken:
                     break
                 except Exception as e:
                     print(f"error: {e}")
-                    self.headers_instance.get_and_update_new_auth_cookie(
-                        url=player["URL"]
-                    )
+                    self.headers_instance.get_and_update_new_auth_cookie()
                     self.active_headers = self.headers_instance.get_headers()

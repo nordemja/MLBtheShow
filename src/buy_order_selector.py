@@ -68,24 +68,24 @@ class BuyOrderSelector:
                 continue
 
             if listing["profit"] > 0:
-                print(
-                    {
-                        "player name": listing["player name"],
-                        "buy amount": listing["buy amount"],
-                        "sell amount": listing["sell amount"],
-                        "profit": listing["profit"],
-                        "URL": listing["URL"],
-                    }
-                )
                 self._append_if_new(listing, players_to_buy)
-                self.buy_order_length += 1
-                self.total_open_listing_length += 1
 
         return players_to_buy
 
-    def _append_if_new(self, item, target_list):
-        if not any(d["player name"] == item["player name"] for d in target_list):
-            target_list.append(item)
+    def _append_if_new(self, listing, target_list):
+        if not any(d["player name"] == listing["player name"] for d in target_list):
+            print(
+                {
+                    "player name": listing["player name"],
+                    "buy amount": listing["buy amount"],
+                    "sell amount": listing["sell amount"],
+                    "profit": listing["profit"],
+                    "URL": listing["URL"],
+                }
+            )
+            target_list.append(listing)
+            self.buy_order_length += 1
+            self.total_open_listing_length += 1
 
     def _is_order_placed(self, player_name):
         """

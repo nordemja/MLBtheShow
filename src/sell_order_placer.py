@@ -1,5 +1,8 @@
 from typing import List, Dict
-import concurrent.futures
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
 import requests
 from bs4 import BeautifulSoup
 from playsound import playsound
@@ -126,18 +129,16 @@ class SellOrderPlacer:
                 )
                 soup = BeautifulSoup(player_page.text, "html.parser")
                 total_sellable = soup.find_all("div", {"class": "well"})
-                break
+                for each in total_sellable:
+                    if "Sellable" in each.text.strip():
+                        total_sellable_cards = each.text.strip()[-1]
+                        break
             except Exception as e:
                 print(f"error: {e}")
                 self.headers_instance.get_and_update_new_auth_cookie(url=player_url)
                 self.active_headers = self.headers_instance.get_headers()
-
-        for each in total_sellable:
-            if "Sellable" in each.text.strip():
-                total_sellable = each.text.strip()[-1]
-                return int(total_sellable)
-
-        return 0
+            else:
+                return int(total_sellable_cards)
 
     def _place_sell_orders(self, player_list: List[Dict[str, str]]):
         """
@@ -166,36 +167,37 @@ class SellOrderPlacer:
             form_token (str): The CAPTCHA form token to inject.
         """
 
-        def load_page():
-            self.driver.get(player_url)
-
         while True:
             try:
-                self.driver.set_page_load_timeout(10)
-
                 print("loading page")
+                self.driver.get(player_url)
 
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(load_page)
-                    future.result(timeout=10)  # Hard timeout
+                WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.ID, "g-recaptcha-response"))
+                )
 
                 print("page loaded")
 
-                self.driver.execute_script(
-                    f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
-                )
+                write_token_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
+
+                self.driver.execute_script(write_token_js)
+
                 print("injected captcha token")
                 break
 
-            except concurrent.futures.TimeoutError:
+            except TimeoutException as e:
                 playsound(self.error_sound_path)
-                print("Timeout loading page. Stopping load and refreshing...")
+                print(f"TimeoutException: {e}")
                 self.driver.refresh()
 
-            except Exception as e:
+            except WebDriverException as e:
                 playsound(self.error_sound_path)
+                print(f"WebDriverException: {e}")
+
+            except Exception as e:
                 print(f"Error: {e}")
-                self.driver.refresh()
+                self.headers_instance.get_and_update_new_auth_cookie()
+                self.active_headers = self.headers_instance.get_headers()
 
     def _sell_order_post_request(self, player: Dict[str, any], sellable_before: int):
         """

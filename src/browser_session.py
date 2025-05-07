@@ -40,6 +40,7 @@ class BrowserSession:
         Initialize the BrowserSession with a predefined set of allowed cookie keys.
         """
         self.session_cookie = None
+        self.tsn_session = None
         self.driver = None
         self.allowed_keys = {
             "tsn_token",
@@ -112,6 +113,9 @@ class BrowserSession:
                 ):
                     full_browser_cookie = log["params"]["headers"]["cookie"]
                     self.session_cookie = self._parse_cookie(full_browser_cookie)
+                    for cookie in self.session_cookie.split(";"):
+                        if "_tsn_session" in cookie:
+                            self.tsn_session = cookie.split("=")[1]
                     return  # Grab the first valid one and break
             except Exception:
                 continue
