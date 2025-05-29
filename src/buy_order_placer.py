@@ -1,7 +1,12 @@
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
+
 import requests
+from playsound import playsound
 
 from config.globals import BUY_ORDER_OVERBID
-
 from .captcha_solver import CaptchaSolver
 from .auth_token import AuthToken
 from .stubs import Stubs
@@ -38,10 +43,7 @@ class BuyOrderPlacer:
     """
 
     def __init__(
-        self,
-        single_item_api_path,
-        headers_instance,
-        browser,
+        self, single_item_api_path, headers_instance, browser, error_sound_path
     ):
         """
         Initialize the BuyOrders object.
@@ -54,6 +56,7 @@ class BuyOrderPlacer:
         self.single_item_api_path = single_item_api_path
         self.headers_instance = headers_instance
         self.driver = browser.driver
+        self.error_sound_path = error_sound_path
         self.stubs = Stubs(self.headers_instance)
         self.active_headers = None
 
@@ -79,11 +82,18 @@ class BuyOrderPlacer:
             auth_token.get_auth_tokens(players_to_buy)
             self._get_item_buy_price(player_list=players_to_buy)
 
-            players_to_buy_with_captcha_tokens = captcha_solver.get_captcha_tokens(
-                players_to_buy
+            players_to_buy_with_captcha_tokens, leftover_player_list = (
+                captcha_solver.get_captcha_tokens(players_to_buy)
             )
 
             self._place_buy_orders(players_to_buy_with_captcha_tokens)
+
+            if len(leftover_player_list) > 0:
+                leftover_player_list_with_captcha_tokens, _ = (
+                    captcha_solver.get_captcha_tokens(leftover_player_list)
+                )
+                self._place_buy_orders(leftover_player_list_with_captcha_tokens)
+
             print("DONE PLACING BUY ORDERS")
 
     def _get_item_buy_price(self, player_list):
@@ -93,6 +103,7 @@ class BuyOrderPlacer:
         Args:
             player_list (list): Players to be updated with pricing info.
         """
+        print("getting item buy prices.....")
         for player in player_list:
             player_uuid = player["URL"].split("/")[-1]
             response = requests.get(
@@ -130,14 +141,38 @@ class BuyOrderPlacer:
             player_url (str): Webpage URL of the player.
             form_token (str): CAPTCHA token to inject.
         """
-        print("loading page")
-        self.driver.get(player_url)
-        print("page loaded")
-        write_token_js = (
-            f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
-        )
-        self.driver.execute_script(write_token_js)
-        print("injected captcha token")
+
+        while True:
+            try:
+                print("loading page")
+                self.driver.get(player_url)
+
+                WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.ID, "g-recaptcha-response"))
+                )
+
+                print("page loaded")
+
+                write_token_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
+
+                self.driver.execute_script(write_token_js)
+
+                print("injected captcha token")
+                break
+
+            except TimeoutException as e:
+                playsound(self.error_sound_path)
+                print(f"TimeoutException: {e}")
+                self.driver.refresh()
+
+            except WebDriverException as e:
+                playsound(self.error_sound_path)
+                print(f"WebDriverException: {e}")
+
+            except Exception as e:
+                print(f"Error: {e}")
+                self.headers_instance.get_and_update_new_auth_cookie()
+                self.active_headers = self.headers_instance.get_headers()
 
     def _buy_order_post_request(
         self, player_url, buy_amount, form_token, auth_token_list

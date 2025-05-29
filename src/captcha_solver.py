@@ -34,6 +34,7 @@ class CaptchaSolver:
         Args:
             player_list (List[Dict]): List of player dictionaries with a "URL" key.
         """
+        print("sending captcha solver requests.....")
         for player in player_list:
             url = (
                 f"https://2captcha.com/in.php?key={self.api_key}"
@@ -64,6 +65,7 @@ class CaptchaSolver:
         ready_list = []
         start_time = time.time()
         i = 0
+        print("getting captcha tokens.....")
         while i < len(player_list):
             while True:
                 try:
@@ -77,8 +79,7 @@ class CaptchaSolver:
                         form_token = response.json().get("request")
                         player_list[i]["form_token"] = form_token
                         print(f"ACQUIRED TOKEN FOR {player_list[i]['player name']}")
-                        ready_list.append(player_list[i])
-                        i += 1
+                        ready_list.append(player_list.pop(i))
                     else:
                         player_list.append(player_list.pop(i))
                 except Exception as e:
@@ -86,6 +87,13 @@ class CaptchaSolver:
                 break
 
             if time.time() - start_time > 60:
+                print("TIME UP! PLACING ORDERS")
                 break
 
-        return ready_list
+        if len(player_list) > 0:
+            print(
+                f"Failed to get all tokens for player list - remaining length: {len(player_list)}"
+            )
+        else:
+            print("All players in player list have captcha tokens")
+        return ready_list, player_list

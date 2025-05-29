@@ -47,7 +47,11 @@ try:
 
     # dynamically set user authentication cookie
     browser.get_cookie_header_from_browser(url=card_series_link)
-    headers_instance = Headers(headers_path=headers_file_path, browser=browser)
+    headers_instance = Headers(
+        error_sound_path=error_sound_path,
+        headers_path=headers_file_path,
+        browser=browser,
+    )
     headers_instance.update_cookie(new_cookie=browser.session_cookie)
 
     # get available stubs balance
@@ -66,6 +70,7 @@ try:
         single_item_api_path=SINGLE_ITEM_LISTING_API_PATH,
         headers_instance=headers_instance,
         browser=browser,
+        error_sound_path=error_sound_path,
     )
 
     sell_order_selector = SellOrderSelector(
@@ -78,6 +83,7 @@ try:
         single_item_api_path=SINGLE_ITEM_LISTING_API_PATH,
         headers_instance=headers_instance,
         browser=browser,
+        error_sound_path=error_sound_path,
     )
     open_orders = OpenOrders(
         open_buy_orders_path=OPEN_BUY_ORDERS_PATH,
@@ -165,11 +171,11 @@ try:
         except KeyboardInterrupt:
             print("STOPPING PROGRAM")
             print("CANCELLING ORDERS...")
-            headers_instance.delete_cookie()
             browser.close_browser()
 except Exception as e:
-    headers_instance.delete_cookie()
     browser.close_browser()
     print(e)
     print(traceback.format_exc())
     playsound(error_sound_path)
+finally:
+    headers_instance.delete_cookie()

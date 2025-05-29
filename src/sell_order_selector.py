@@ -64,9 +64,7 @@ class SellOrderSelector:
                 break
             except Exception as e:
                 print(f"error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie(
-                    url=self.completed_orders_path
-                )
+                self.headers_instance.get_and_update_new_auth_cookie()
                 self.active_headers = self.headers_instance.get_headers()
 
         sell_players = []
@@ -116,15 +114,13 @@ class SellOrderSelector:
                     timeout=10,
                 )
                 soup = BeautifulSoup(resp.text, "html.parser")
-                break
+                orders = soup.find("tbody").find_all("tr")
             except Exception as e:
                 print(f"error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie(
-                    url=self.completed_orders_path
-                )
+                self.headers_instance.get_and_update_new_auth_cookie()
                 self.active_headers = self.headers_instance.get_headers()
-
-        return soup.find("tbody").find_all("tr")
+            else:
+                return orders
 
     def _get_total_sellable(self, player_url: str) -> int:
         """
@@ -144,18 +140,13 @@ class SellOrderSelector:
                 )
                 soup = BeautifulSoup(player_page.text, "html.parser")
                 total_sellable = soup.find_all("div", {"class": "well"})
-                break
-
+                for each in total_sellable:
+                    if "Sellable" in each.text.strip():
+                        total_sellable = each.text.strip()[-1]
+                        break
             except Exception as e:
                 print(e)
-                self.headers_instance.get_and_update_new_auth_cookie(
-                    url=self.completed_orders_path
-                )
+                self.headers_instance.get_and_update_new_auth_cookie()
                 self.active_headers = self.headers_instance.get_headers()
-
-        for each in total_sellable:
-            if "Sellable" in each.text.strip():
-                total_sellable = each.text.strip()[-1]
+            else:
                 return int(total_sellable)
-
-        return 0

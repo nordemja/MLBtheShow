@@ -1,9 +1,13 @@
 from typing import List, Dict
-from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
 import requests
+from bs4 import BeautifulSoup
+from playsound import playsound
 
 from config.globals import SELL_ORDER_OVERBID
-
 from .captcha_solver import CaptchaSolver
 from .auth_token import AuthToken
 
@@ -45,6 +49,7 @@ class SellOrderPlacer:
         single_item_api_path: str,
         headers_instance: dict,
         browser,
+        error_sound_path,
     ):
         """
         Initializes the SellOrderPlacer instance.
@@ -57,6 +62,7 @@ class SellOrderPlacer:
         self.single_item_api_path = single_item_api_path
         self.headers_instance = headers_instance
         self.driver = browser.driver
+        self.error_sound_path = error_sound_path
         self.active_headers = None
 
     def execute_sell_orders(self, players_to_sell: List[Dict[str, str]]):
@@ -77,10 +83,16 @@ class SellOrderPlacer:
             auth_token.get_auth_tokens(players_to_sell)
             self._get_item_sell_price(players_to_sell)
 
-            sellable_players_with_captcha_tokens = captcha_solver.get_captcha_tokens(
-                players_to_sell
+            sellable_players_with_captcha_tokens, leftover_player_list = (
+                captcha_solver.get_captcha_tokens(players_to_sell)
             )
             self._place_sell_orders(sellable_players_with_captcha_tokens)
+
+            if len(leftover_player_list) > 0:
+                leftover_player_list_with_captcha_tokens, _ = (
+                    captcha_solver.get_captcha_tokens(leftover_player_list)
+                )
+                self._place_sell_orders(leftover_player_list_with_captcha_tokens)
 
         print("DONE EXECUTING SELL ORDERS\n")
 
@@ -91,6 +103,7 @@ class SellOrderPlacer:
         Args:
             player_list (List[Dict[str, str]]): The list of players to get sell prices for.
         """
+        print("getting item sell prices.....")
         for player in player_list:
             player_uuid = player["URL"].split("/")[-1]
             response = requests.get(
@@ -116,18 +129,16 @@ class SellOrderPlacer:
                 )
                 soup = BeautifulSoup(player_page.text, "html.parser")
                 total_sellable = soup.find_all("div", {"class": "well"})
-                break
+                for each in total_sellable:
+                    if "Sellable" in each.text.strip():
+                        total_sellable_cards = each.text.strip()[-1]
+                        break
             except Exception as e:
                 print(f"error: {e}")
                 self.headers_instance.get_and_update_new_auth_cookie(url=player_url)
                 self.active_headers = self.headers_instance.get_headers()
-
-        for each in total_sellable:
-            if "Sellable" in each.text.strip():
-                total_sellable = each.text.strip()[-1]
-                return int(total_sellable)
-
-        return 0
+            else:
+                return int(total_sellable_cards)
 
     def _place_sell_orders(self, player_list: List[Dict[str, str]]):
         """
@@ -155,14 +166,38 @@ class SellOrderPlacer:
             player_url (str): The URL of the player to inject the CAPTCHA token into.
             form_token (str): The CAPTCHA form token to inject.
         """
-        print("loading page")
-        self.driver.get(player_url)
-        print("page loaded")
-        wirte_tokon_js = (
-            f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
-        )
-        self.driver.execute_script(wirte_tokon_js)
-        print("injected captcha token")
+
+        while True:
+            try:
+                print("loading page")
+                self.driver.get(player_url)
+
+                WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.ID, "g-recaptcha-response"))
+                )
+
+                print("page loaded")
+
+                write_token_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
+
+                self.driver.execute_script(write_token_js)
+
+                print("injected captcha token")
+                break
+
+            except TimeoutException as e:
+                playsound(self.error_sound_path)
+                print(f"TimeoutException: {e}")
+                self.driver.refresh()
+
+            except WebDriverException as e:
+                playsound(self.error_sound_path)
+                print(f"WebDriverException: {e}")
+
+            except Exception as e:
+                print(f"Error: {e}")
+                self.headers_instance.get_and_update_new_auth_cookie()
+                self.active_headers = self.headers_instance.get_headers()
 
     def _sell_order_post_request(self, player: Dict[str, any], sellable_before: int):
         """

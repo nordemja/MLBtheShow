@@ -110,16 +110,21 @@ class APIMapper:
             web_key (str): The key for the price range parameter (either 'max_best_buy_price' or 'min_best_buy_price').
             value (str): The value associated with the price range parameter.
         """
+        # maximum sell now price
         if web_key == "max_best_buy_price":
             web_key = "max_best_sell_price"
 
-        # minimum buy now price
-        elif web_key == "min_best_sell_price":
-            web_key = "min_best_buy_price"
+        # maximum buy now price
+        elif web_key == "max_best_sell_price":
+            web_key = "max_best_buy_price"
 
         # minimum sell now price
         elif web_key == "min_best_buy_price":
             web_key = "min_best_sell_price"
+
+        # minimum buy now price
+        elif web_key == "min_best_sell_price":
+            web_key = "min_best_buy_price"
 
         self.params[web_key] = value
 
