@@ -67,24 +67,23 @@ class CaptchaSolver:
         i = 0
         print("getting captcha tokens.....")
         while i < len(player_list):
-            while True:
-                try:
-                    request_id = player_list[i]["request_id"]
-                    url = (
-                        f"https://2captcha.com/res.php?key={self.api_key}"
-                        f"&action=get&id={request_id}&json=1"
-                    )
-                    response = requests.get(url, timeout=10)
-                    if response.json().get("status") == 1:
-                        form_token = response.json().get("request")
-                        player_list[i]["form_token"] = form_token
-                        print(f"ACQUIRED TOKEN FOR {player_list[i]['player name']}")
-                        ready_list.append(player_list.pop(i))
-                    else:
-                        player_list.append(player_list.pop(i))
-                except Exception as e:
-                    print(f"Error retrieving token: {e}")
-                break
+            try:
+                request_id = player_list[i]["request_id"]
+                url = (
+                    f"https://2captcha.com/res.php?key={self.api_key}"
+                    f"&action=get&id={request_id}&json=1"
+                )
+                response = requests.get(url, timeout=10)
+                if response.json().get("status") == 1:
+                    form_token = response.json().get("request")
+                    player_list[i]["form_token"] = form_token
+                    print(f"ACQUIRED TOKEN FOR {player_list[i]['player name']}")
+                    ready_list.append(player_list.pop(i))
+                    break
+                # else:
+                #     player_list.append(player_list.pop(i))
+            except Exception as e:
+                print(f"Error retrieving token: {e}")
 
             if time.time() - start_time > 60:
                 print("TIME UP! PLACING ORDERS")

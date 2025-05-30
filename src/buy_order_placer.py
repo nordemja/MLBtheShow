@@ -74,12 +74,9 @@ class BuyOrderPlacer:
         print("Executing buy orders....")
 
         if players_to_buy:
-            auth_token = AuthToken(headers_instance=self.headers_instance)
-            auth_token.active_headers = self.active_headers
 
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_buy)
-            auth_token.get_auth_tokens(players_to_buy)
             self._get_item_buy_price(player_list=players_to_buy)
 
             players_to_buy_with_captcha_tokens, leftover_player_list = (
@@ -129,7 +126,6 @@ class BuyOrderPlacer:
                 player_url=player["URL"],
                 buy_amount=player["buy amount"],
                 form_token=player["form_token"],
-                auth_token_list=player["auth_token_list"],
             )
         print("\n")
 
@@ -148,12 +144,17 @@ class BuyOrderPlacer:
                 self.driver.get(player_url)
 
                 WebDriverWait(self.driver, 15).until(
-                    EC.presence_of_element_located((By.ID, "g-recaptcha-response"))
+                    EC.presence_of_element_located((By.ID, "g-recaptcha-response-1"))
                 )
 
                 print("page loaded")
 
-                write_token_js = f'document.getElementById("g-recaptcha-response").innerHTML="{form_token}";'
+                write_token_js = f"""
+                document.querySelectorAll('textarea[name="g-recaptcha-response"]').forEach(function(el) {{
+                    el.innerHTML = "{form_token}";
+                    el.value = "{form_token}";
+                }});
+                """
 
                 self.driver.execute_script(write_token_js)
 
@@ -175,7 +176,10 @@ class BuyOrderPlacer:
                 self.active_headers = self.headers_instance.get_headers()
 
     def _buy_order_post_request(
-        self, player_url, buy_amount, form_token, auth_token_list
+        self,
+        player_url,
+        buy_amount,
+        form_token,
     ):
         """
         Submits a POST request to place a buy order using available auth tokens.
@@ -191,10 +195,17 @@ class BuyOrderPlacer:
         """
         stubs_before = self.stubs.get_stubs_amount(url=player_url)
 
+        player_html = self.driver.page_source
+
+        auth_token = AuthToken()
+        auth_token_list = auth_token.get_auth_tokens(player_html)
+
+        order_buy_amont = buy_amount + BUY_ORDER_OVERBID
+
         for each in auth_token_list:
             form_data = {
                 "authenticity_token": each,
-                "price": buy_amount + BUY_ORDER_OVERBID,
+                "price": f"{order_buy_amont:,}",
                 "g-recaptcha-response": form_token,
             }
             send_post = requests.post(

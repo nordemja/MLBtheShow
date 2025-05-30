@@ -1,4 +1,3 @@
-import requests
 from bs4 import BeautifulSoup
 
 
@@ -18,42 +17,43 @@ class AuthToken:
 
     """
 
-    def __init__(self, headers_instance):
+    def __init__(self):
         """
         Initialize the AuthToken with required request headers.
 
         Args:
             headers (dict): HTTP headers to be used in GET requests.
         """
-        self.headers_instance = headers_instance
-        self.active_headers = None
 
-    def get_auth_tokens(self, player_list):
+    def get_auth_tokens(self, html):
         """
-        Extract authenticity tokens from each player's page and update the player list.
+        Extract authenticity tokens from a block of HTML.
 
         Args:
-            player_list (list): A list of dictionaries where each dictionary must contain a "URL" key.
-                                After processing, each dictionary will include an "auth_token_list" key
-                                with a list of token values extracted from the page.
+            html (str): HTML content as a string.
 
+        Returns:
+            list: A list of authenticity token values extracted from the HTML.
         """
-        print("getting auth tokens....")
-        for player in player_list:
-            while True:
-                try:
-                    auth_token_list = []
-                    response = requests.get(
-                        player["URL"], headers=self.active_headers, timeout=10
-                    )
-                    soup = BeautifulSoup(response.text, "html.parser")
-                    form_tags = soup.find_all("input", {"name": "authenticity_token"})
-                    for tag in form_tags:
-                        auth_token_list.append(tag.get("value"))
 
-                    player["auth_token_list"] = auth_token_list
-                    break
-                except Exception as e:
-                    print(f"error: {e}")
-                    self.headers_instance.get_and_update_new_auth_cookie()
-                    self.active_headers = self.headers_instance.get_headers()
+        print("Extracting auth tokens from HTML...")
+        auth_token_list = []
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Extract from meta tags (only if csrf-param is authenticity_token)
+        csrf_param = soup.find(
+            "meta", {"name": "csrf-param", "content": "authenticity_token"}
+        )
+        if csrf_param:
+            csrf_token_tag = soup.find("meta", {"name": "csrf-token"})
+            if csrf_token_tag and csrf_token_tag.get("content"):
+                auth_token_list.append(csrf_token_tag["content"])
+
+        # Extract from input tags
+        input_tags = soup.find_all("input", {"name": "authenticity_token"})
+        for tag in input_tags:
+            value = tag.get("value")
+            if value:
+                auth_token_list.append(value)
+
+        return auth_token_list
