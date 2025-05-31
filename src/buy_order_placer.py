@@ -1,3 +1,4 @@
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -74,6 +75,24 @@ class BuyOrderPlacer:
         print("Executing buy orders....")
 
         if players_to_buy:
+
+            # 1. Open all tabs
+            for i, player in enumerate(players_to_buy):
+                if i == 0:
+                    self.driver.get(player["URL"])
+                else:
+                    self.driver.execute_script(
+                        f"window.open('{player['URL']}', '_blank');"
+                    )
+                    self.driver.switch_to.window(self.driver.window_handles[i])
+                    time.sleep(1)  # Optional: allow page to start loading
+
+            # 2. Get all window handless
+            tabs = self.driver.window_handles
+
+            # 3. For each tab, extract sitekey and URL, send 2Captcha request
+            for i, player in enumerate(players_to_buy):
+                self.driver.switch_to.window(tabs[i])
 
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_buy)
