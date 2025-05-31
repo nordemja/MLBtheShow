@@ -43,7 +43,7 @@ class BuyOrderPlacer:
     """
 
     def __init__(
-        self, single_item_api_path, headers_instance, browser, error_sound_path
+        self, single_item_api_path, headers, session, browser, error_sound_path
     ):
         """
         Initialize the BuyOrders object.
@@ -54,11 +54,11 @@ class BuyOrderPlacer:
             browser (BrowserSession): Browser session object containing the Selenium driver.
         """
         self.single_item_api_path = single_item_api_path
-        self.headers_instance = headers_instance
+        self.headers = headers
+        self.session = session
         self.driver = browser.driver
         self.error_sound_path = error_sound_path
-        self.stubs = Stubs(self.headers_instance)
-        self.active_headers = None
+        self.stubs = Stubs(self.headers, self.session)
 
     def execute_buy_orders(self, players_to_buy: list[dict]):
         """
@@ -172,8 +172,8 @@ class BuyOrderPlacer:
 
             except Exception as e:
                 print(f"Error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie()
-                self.active_headers = self.headers_instance.get_headers()
+                # self.headers_instance.get_and_update_new_auth_cookie()
+                # self.active_headers = self.headers_instance.get_headers()
 
     def _buy_order_post_request(
         self,
@@ -196,9 +196,10 @@ class BuyOrderPlacer:
         stubs_before = self.stubs.get_stubs_amount(url=player_url)
 
         player_html = self.driver.page_source
-
         auth_token = AuthToken()
         auth_token_list = auth_token.get_auth_tokens(player_html)
+
+        self.headers["referer"] = player_url
 
         order_buy_amont = buy_amount + BUY_ORDER_OVERBID
 
@@ -208,10 +209,10 @@ class BuyOrderPlacer:
                 "price": f"{order_buy_amont:,}",
                 "g-recaptcha-response": form_token,
             }
-            send_post = requests.post(
+            send_post = self.session.post(
                 f"{player_url}/create_buy_order",
-                form_data,
-                headers=self.active_headers,
+                data=form_data,
+                headers=self.headers,
                 timeout=10,
             )
 

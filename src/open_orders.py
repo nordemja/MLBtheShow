@@ -1,6 +1,5 @@
 from typing import List, Dict
 from bs4 import BeautifulSoup
-import requests
 
 
 class OpenOrders:
@@ -34,7 +33,8 @@ class OpenOrders:
         open_buy_orders_path: str,
         open_sell_orders_path: str,
         root_path: str,
-        headers_instance: dict,
+        headers: dict,
+        session,
     ):
         """
         Initialize OpenOrders with URLs and headers.
@@ -47,8 +47,8 @@ class OpenOrders:
         self.open_buy_orders_path = open_buy_orders_path
         self.open_sell_orders_path = open_sell_orders_path
         self.root_path = root_path
-        self.headers_instance = headers_instance
-        self.active_headers = None
+        self.headers = headers
+        self.session = session
 
     def get_buy_orders(self) -> List[Dict[str, str]]:
         """
@@ -95,7 +95,7 @@ class OpenOrders:
 
         while True:
             try:
-                response = requests.get(url, headers=self.active_headers, timeout=10)
+                response = self.session.get(url, headers=self.headers, timeout=10)
                 soup = BeautifulSoup(response.text, "html.parser")
                 tbody = soup.find("tbody")
                 if tbody:
@@ -110,8 +110,8 @@ class OpenOrders:
 
             except Exception as e:
                 print(f"error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie()
-                self.active_headers = self.headers_instance.get_headers()
+                # self.headers_instance.get_and_update_new_auth_cookie()
+                # self.active_headers = self.headers_instance.get_headers()
 
         for row in rows:
             player_name = row.contents[3].text.strip()

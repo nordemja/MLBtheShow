@@ -1,7 +1,8 @@
 from typing import Final
 
 ERROR_SOUND_PATH: Final[str] = "error_sound.mp3"
-HEADERS_PATH: Final[str] = "headers.json"
+GET_REQUEST_HEADERS_PATH: Final[str] = "get_request_headers.json"
+POST_REQUEST_HEADERS_PATH: Final[str] = "post_request_headers.json"
 
 BASE_API_PATH = "https://mlb25.theshow.com/apis/listings.json"
 SINGLE_ITEM_LISTING_API_PATH = "https://mlb25.theshow.com/apis/listing.json"

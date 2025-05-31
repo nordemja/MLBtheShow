@@ -23,7 +23,7 @@ repos:
     rev: v3.3.6
     hooks:
     -   id: pylint
-        args: ["--max-line-length=120", "--disable=C0114, R0903, W0718, R0801"]
+        args: ["--max-line-length=120", "--disable=C0114, R0903, W0718, R0801, R0913, R0917"]
         language: system
         env:
             PYTHONPATH: src

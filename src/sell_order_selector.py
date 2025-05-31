@@ -1,5 +1,4 @@
 from typing import List, Dict
-import requests
 from bs4 import BeautifulSoup
 
 
@@ -24,10 +23,7 @@ class SellOrderSelector:
     """
 
     def __init__(
-        self,
-        completed_orders_path: str,
-        root_path: str,
-        headers_instance: dict,
+        self, completed_orders_path: str, root_path: str, headers: dict, session
     ):
         """
         Initializes the SellOrderSelector with the required request data.
@@ -39,8 +35,8 @@ class SellOrderSelector:
 
         self.completed_orders_path = completed_orders_path
         self.root_path = root_path
-        self.headers_instance = headers_instance
-        self.active_headers = None
+        self.headers = headers
+        self.session = session
 
     def fetch_sellable_players(self) -> List[Dict[str, str]]:
         """
@@ -52,8 +48,8 @@ class SellOrderSelector:
 
         while True:
             try:
-                completed_page = requests.get(
-                    self.completed_orders_path, headers=self.active_headers, timeout=10
+                completed_page = self.session.get(
+                    self.completed_orders_path, headers=self.headers, timeout=10
                 )
                 soup = BeautifulSoup(completed_page.text, "html.parser")
                 pagination_div = soup.find("div", {"class": "pagination"})
@@ -64,8 +60,8 @@ class SellOrderSelector:
                 break
             except Exception as e:
                 print(f"error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie()
-                self.active_headers = self.headers_instance.get_headers()
+                # self.headers_instance.get_and_update_new_auth_cookie()
+                # self.active_headers = self.headers_instance.get_headers()
 
         sell_players = []
 
@@ -108,17 +104,17 @@ class SellOrderSelector:
         """
         while True:
             try:
-                resp = requests.get(
+                resp = self.session.get(
                     f"{self.completed_orders_path}?page={page}&",
-                    headers=self.active_headers,
+                    headers=self.headers,
                     timeout=10,
                 )
                 soup = BeautifulSoup(resp.text, "html.parser")
                 orders = soup.find("tbody").find_all("tr")
             except Exception as e:
                 print(f"error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie()
-                self.active_headers = self.headers_instance.get_headers()
+                # self.headers_instance.get_and_update_new_auth_cookie()
+                # self.active_headers = self.headers_instance.get_headers()
             else:
                 return orders
 
@@ -135,8 +131,8 @@ class SellOrderSelector:
         """
         while True:
             try:
-                player_page = requests.get(
-                    player_url, headers=self.active_headers, timeout=10
+                player_page = self.session.get(
+                    player_url, headers=self.headers, timeout=10
                 )
                 soup = BeautifulSoup(player_page.text, "html.parser")
                 total_sellable = soup.find_all("div", {"class": "well"})
@@ -146,7 +142,7 @@ class SellOrderSelector:
                         break
             except Exception as e:
                 print(e)
-                self.headers_instance.get_and_update_new_auth_cookie()
-                self.active_headers = self.headers_instance.get_headers()
+                # self.headers_instance.get_and_update_new_auth_cookie()
+                # self.active_headers = self.headers_instance.get_headers()
             else:
                 return int(total_sellable)

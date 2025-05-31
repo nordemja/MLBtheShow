@@ -47,7 +47,8 @@ class SellOrderPlacer:
     def __init__(
         self,
         single_item_api_path: str,
-        headers_instance: dict,
+        headers: dict,
+        session,
         browser,
         error_sound_path,
     ):
@@ -60,7 +61,8 @@ class SellOrderPlacer:
             browser: An object wrapping a Selenium WebDriver for page interaction.
         """
         self.single_item_api_path = single_item_api_path
-        self.headers_instance = headers_instance
+        self.headers = headers
+        self.session = session
         self.driver = browser.driver
         self.error_sound_path = error_sound_path
         self.active_headers = None
@@ -75,8 +77,7 @@ class SellOrderPlacer:
         print("Executing sell orders....")
 
         if players_to_sell:
-            auth_token = AuthToken(headers_instance=self.headers_instance)
-            auth_token.active_headers = self.active_headers
+            auth_token = AuthToken()
 
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_sell)
@@ -124,8 +125,8 @@ class SellOrderPlacer:
         """
         while True:
             try:
-                player_page = requests.get(
-                    player_url, headers=self.active_headers, timeout=10
+                player_page = self.session.get(
+                    player_url, headers=self.headers, timeout=10
                 )
                 soup = BeautifulSoup(player_page.text, "html.parser")
                 total_sellable = soup.find_all("div", {"class": "well"})
@@ -135,8 +136,8 @@ class SellOrderPlacer:
                         break
             except Exception as e:
                 print(f"error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie(url=player_url)
-                self.active_headers = self.headers_instance.get_headers()
+                # self.headers_instance.get_and_update_new_auth_cookie(url=player_url)
+                # self.active_headers = self.headers_instance.get_headers()
             else:
                 return int(total_sellable_cards)
 
@@ -196,8 +197,8 @@ class SellOrderPlacer:
 
             except Exception as e:
                 print(f"Error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie()
-                self.active_headers = self.headers_instance.get_headers()
+                # self.headers_instance.get_and_update_new_auth_cookie()
+                # self.active_headers = self.headers_instance.get_headers()
 
     def _sell_order_post_request(self, player: Dict[str, any], sellable_before: int):
         """
@@ -217,7 +218,7 @@ class SellOrderPlacer:
             send_post = requests.post(
                 player["URL"] + "/create_sell_order",
                 form_data,
-                headers=self.active_headers,
+                headers=self.headers,
                 timeout=10,
             )
 

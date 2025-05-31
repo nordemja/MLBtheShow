@@ -15,15 +15,15 @@ class Stubs:
             Retrieves the current stubs balance from the provided URL.
     """
 
-    def __init__(self, headers_instance: Dict[str, str]):
+    def __init__(self, headers: Dict[str, str], requests_session: requests.Session):
         """
         Initialize the Stubs class.
 
         Args:
             headers (Dict[str, str]): The headers to be used for HTTP requests.
         """
-        self.headers_instance = headers_instance
-        self.active_headers = headers_instance.get_headers()
+        self.headers = headers
+        self.session = requests_session
 
     def get_stubs_amount(self, url: str) -> int:
         """
@@ -37,9 +37,7 @@ class Stubs:
         """
         while True:
             try:
-                stubs_amount = requests.get(
-                    url, headers=self.active_headers, timeout=10
-                )
+                stubs_amount = self.session.get(url, headers=self.headers, timeout=10)
                 soup = BeautifulSoup(stubs_amount.text, "html.parser")
                 stubs_amount = (
                     soup.find("div", {"class": "well stubs"})
@@ -51,7 +49,7 @@ class Stubs:
                 break
             except Exception as e:
                 print(f"error: {e}")
-                self.headers_instance.get_and_update_new_auth_cookie()
-                self.active_headers = self.headers_instance.get_headers()
+                # self.headers_instance.get_and_update_new_auth_cookie()
+                # self.active_headers = self.headers_instance.get_headers()
 
         return int(stubs_amount)

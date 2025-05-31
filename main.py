@@ -9,7 +9,8 @@ from config.globals import (
     OPEN_BUY_ORDERS_PATH,
     OPEN_SELL_ORDERS_PATH,
     COMPLETED_ORDERS_PATH,
-    HEADERS_PATH,
+    GET_REQUEST_HEADERS_PATH,
+    POST_REQUEST_HEADERS_PATH,
     ERROR_SOUND_PATH,
 )
 from config.team_id_map import TEAM_ID_MAP
@@ -30,8 +31,12 @@ from src.order_checker import OrderChecker
 error_sound_path = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "config", ERROR_SOUND_PATH
 )
-headers_file_path = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "config", HEADERS_PATH
+get_request_headers_file_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "config", GET_REQUEST_HEADERS_PATH
+)
+
+post_request_headers_file_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "config", POST_REQUEST_HEADERS_PATH
 )
 
 try:
@@ -45,17 +50,17 @@ try:
         "Log into the communinty market and enter link of card criteria: "
     )
 
+    session = browser.create_requests_session(browser.driver)
+
     # dynamically set user authentication cookie
-    browser.get_cookie_header_from_browser(url=card_series_link)
-    headers_instance = Headers(
-        error_sound_path=error_sound_path,
-        headers_path=headers_file_path,
-        browser=browser,
-    )
-    headers_instance.update_cookie(new_cookie=browser.session_cookie)
+    # browser.get_cookie_header_from_browser(url=card_series_link)
+    headers_instance = Headers(error_sound_path=error_sound_path)
+    headers_get_request = headers_instance.get_headers(get_request_headers_file_path)
+    headers_post_request = headers_instance.get_headers(post_request_headers_file_path)
+    # headers_instance.update_cookie(new_cookie=browser.session_cookie)
 
     # get available stubs balance
-    stubs = Stubs(headers_instance=headers_instance)
+    stubs = Stubs(headers=headers_get_request, requests_session=session)
     print(f"Stubs Balance: {stubs.get_stubs_amount(url=card_series_link)}\n")
 
     # intalize rest of classes to be used
@@ -68,7 +73,8 @@ try:
 
     buy_order_placer = BuyOrderPlacer(
         single_item_api_path=SINGLE_ITEM_LISTING_API_PATH,
-        headers_instance=headers_instance,
+        headers=headers_post_request,
+        session=session,
         browser=browser,
         error_sound_path=error_sound_path,
     )
@@ -76,20 +82,24 @@ try:
     sell_order_selector = SellOrderSelector(
         completed_orders_path=COMPLETED_ORDERS_PATH,
         root_path=ROOT_PATH,
-        headers_instance=headers_instance,
+        headers=headers_get_request,
+        session=session,
     )
 
     sell_order_placer = SellOrderPlacer(
         single_item_api_path=SINGLE_ITEM_LISTING_API_PATH,
-        headers_instance=headers_instance,
+        headers=headers_post_request,
+        session=session,
         browser=browser,
         error_sound_path=error_sound_path,
     )
+
     open_orders = OpenOrders(
         open_buy_orders_path=OPEN_BUY_ORDERS_PATH,
         open_sell_orders_path=OPEN_SELL_ORDERS_PATH,
         root_path=ROOT_PATH,
-        headers_instance=headers_instance,
+        headers=headers_get_request,
+        session=session,
     )
 
     api_mapper = APIMapper(
@@ -105,16 +115,13 @@ try:
     while True:
         try:
             # get players to sell as a list then place sell orders
-            sell_order_selector.active_headers = headers_instance.get_headers()
             players_to_sell = sell_order_selector.fetch_sellable_players()
 
-            sell_order_placer.active_headers = headers_instance.get_headers()
             sell_order_placer.execute_sell_orders(players_to_sell=players_to_sell)
 
             # fetch all players available to flip from API and order by profit margin
             listings = market.fetch_listings()
 
-            open_orders.active_headers = headers_instance.get_headers()
             open_order_list = open_orders.get_all_open_orders()
             CURRENT_BUY_ORDER_LENGTH = len(open_orders.get_buy_orders())
             OPEN_LISTING_LENGTH = len(open_order_list)
@@ -130,16 +137,13 @@ try:
             print("\n")
 
             # place buy orders
-            buy_order_placer.active_headers = headers_instance.get_headers()
             buy_order_placer.execute_buy_orders(players_to_buy=players_to_buy)
 
             # get players to buy as a list then place buy orders
-            sell_order_selector.active_headers = headers_instance.get_headers()
             players_to_sell = sell_order_selector.fetch_sellable_players()
             sell_order_placer.execute_sell_orders(players_to_sell=players_to_sell)
 
             # get a list of the currently open buy orders
-            open_orders.active_headers = headers_instance.get_headers()
             open_buy_orders = open_orders.get_buy_orders()
             browser.driver.get(OPEN_BUY_ORDERS_PATH)
             time.sleep(3)
@@ -151,11 +155,9 @@ try:
             # check that active buy order is best price, cancel and replace order if not
             replace_buy_orders = order_checker.check_buy_orders(orders=open_buy_orders)
 
-            buy_order_placer.active_headers = headers_instance.get_headers()
             buy_order_placer.execute_buy_orders(players_to_buy=replace_buy_orders)
 
             # get a list of the currently open sell orders
-            open_orders.active_headers = headers_instance.get_headers()
             open_sell_orders = open_orders.get_sell_orders()
             browser.driver.get(OPEN_SELL_ORDERS_PATH)
             time.sleep(3)
@@ -165,7 +167,6 @@ try:
                 orders=open_sell_orders
             )
 
-            sell_order_placer.active_headers = headers_instance.get_headers()
             sell_order_placer.execute_sell_orders(players_to_sell=replace_sell_orders)
 
         except KeyboardInterrupt:
@@ -177,5 +178,3 @@ except Exception as e:
     print(e)
     print(traceback.format_exc())
     playsound(error_sound_path)
-finally:
-    headers_instance.delete_cookie()
