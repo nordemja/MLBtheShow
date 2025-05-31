@@ -40,21 +40,7 @@ class BrowserSession:
         """
         Initialize the BrowserSession with a predefined set of allowed cookie keys.
         """
-        # self.session_cookie = None
-        # self.tsn_session = None
         self.driver = None
-        # self.allowed_keys = {
-        #     "tsn_token",
-        #     "ab.storage.userId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5",
-        #     "ab.storage.deviceId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5",
-        #     "tsn_item_referrer",
-        #     "_gid",
-        #     "_tsn_session",
-        #     "ab.storage.sessionId.bbce52ad-c4ca-45bc-9c03-b1183aff5ee5",
-        #     "_ga",
-        #     "tsn_last_url",
-        #     "_ga_EJKYYHZPBF",
-        # }
 
     def start_browser(self):
         """
@@ -106,60 +92,3 @@ class BrowserSession:
         for cookie in driver.get_cookies():
             session.cookies.set(cookie["name"], cookie["value"])
         return session
-
-    # def get_cookie_header_from_browser(self, url):
-    #     """
-    #     Navigate to a specified URL and retrieve authentication cookies
-    #     from Chrome's performance logs. Stores the parsed cookies internally.
-
-    #     Args:
-    #         url (str): The URL to visit in the browser.
-
-    #     Side effects:
-    #         Sets self.session_cookie with the extracted cookie header.
-    #     """
-    #     print("getting auth cookie......")
-    #     self.driver.get(url)
-    #     time.sleep(5)
-
-    #     logs = self.driver.get_log("performance")
-    #     for entry in logs:
-    #         try:
-    #             log = json.loads(entry["message"])["message"]
-    #             if (
-    #                 log["method"] == "Network.requestWillBeSentExtraInfo"
-    #                 and "headers" in log["params"]
-    #                 and "cookie" in log["params"]["headers"]
-    #             ):
-    #                 full_browser_cookie = log["params"]["headers"]["cookie"]
-    #                 self.session_cookie = self._parse_cookie(full_browser_cookie)
-    #                 for cookie in self.session_cookie.split(";"):
-    #                     if "_tsn_session" in cookie:
-    #                         self.tsn_session = cookie.split("=")[1]
-    #                 return  # Grab the first valid one and break
-    #         except Exception:
-    #             continue
-
-    #     print("ERROR: No cookie header found.")
-    #     sys.exit()
-
-    # def _parse_cookie(self, cookie_str):
-    #     """
-    #     Filters and formats cookies from a raw cookie string.
-
-    #     Args:
-    #         cookie_str (str): Raw cookie string from browser logs.
-
-    #     Returns:
-    #         str: A filtered and concatenated cookie string containing only allowed keys.
-    #     """
-    #     cookies = ""
-    #     for item in cookie_str.split("; "):
-    #         if "=" in item:
-    #             key, value = item.split("=", 1)
-    #             key = key.strip()
-    #             value = value.strip()
-    #             if key in self.allowed_keys:
-    #                 cookies += key + "=" + value + "; "
-
-    #     return cookies.rstrip("; ").strip()
