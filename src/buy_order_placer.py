@@ -1,8 +1,10 @@
-import time
+from io import StringIO
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
+from bs4 import BeautifulSoup
+from lxml import etree
 
 import requests
 from playsound import playsound
@@ -76,23 +78,23 @@ class BuyOrderPlacer:
 
         if players_to_buy:
 
-            # 1. Open all tabs
-            for i, player in enumerate(players_to_buy):
-                if i == 0:
-                    self.driver.get(player["URL"])
-                else:
-                    self.driver.execute_script(
-                        f"window.open('{player['URL']}', '_blank');"
-                    )
-                    self.driver.switch_to.window(self.driver.window_handles[i])
-                    time.sleep(1)  # Optional: allow page to start loading
+            # # 1. Open all tabs
+            # for i, player in enumerate(players_to_buy):
+            #     if i == 0:
+            #         self.driver.get(player["URL"])
+            #     else:
+            #         self.driver.execute_script(
+            #             f"window.open('{player['URL']}', '_blank');"
+            #         )
+            #         self.driver.switch_to.window(self.driver.window_handles[i])
+            #         time.sleep(1)  # Optional: allow page to start loading
 
-            # 2. Get all window handless
-            tabs = self.driver.window_handles
+            # # 2. Get all window handless
+            # tabs = self.driver.window_handles
 
-            # 3. For each tab, extract sitekey and URL, send 2Captcha request
-            for i, player in enumerate(players_to_buy):
-                self.driver.switch_to.window(tabs[i])
+            # # 3. For each tab, extract sitekey and URL, send 2Captcha request
+            # for i, player in enumerate(players_to_buy):
+            #     self.driver.switch_to.window(tabs[i])
 
             captcha_solver = CaptchaSolver()
             captcha_solver.send_captcha_requests(players_to_buy)
@@ -148,6 +150,31 @@ class BuyOrderPlacer:
             )
         print("\n")
 
+    def _find_real_buy_order_form(self):
+        # Get all forms with action containing 'create_buy_order'
+        forms = self.driver.find_elements(
+            "xpath", '//form[contains(@action, "/create_buy_order")]'
+        )
+
+        for form in forms:
+            # Get outer HTML of the form
+            form_html = form.get_attribute("outerHTML")
+
+            # Parse with lxml to check attribute order
+            parser = etree.HTMLParser()
+            tree = etree.parse(StringIO(form_html), parser)
+            form_element = tree.xpath("//form")[0]
+
+            # Get attribute keys in order
+            attr_order = list(form_element.attrib.keys())
+
+            # Check if 'id' is the first attribute
+            if attr_order and attr_order[0] == "id":
+                return form_html  # This is the real form
+
+        # If none found, fallback to first form
+        return forms[0] if forms else None
+
     def _inject_captcha_token_into_webpage(self, player_url, form_token):
         """
         Injects the CAPTCHA token into the DOM for a given player's URL.
@@ -168,12 +195,22 @@ class BuyOrderPlacer:
 
                 print("page loaded")
 
-                write_token_js = f"""
-                document.querySelectorAll('textarea[name="g-recaptcha-response"]').forEach(function(el) {{
-                    el.innerHTML = "{form_token}";
-                    el.value = "{form_token}";
-                }});
-                """
+                real_form_html = self._find_real_buy_order_form()
+                soup = BeautifulSoup(real_form_html, "html.parser")
+                recaptcha_textarea = soup.find(
+                    "textarea", class_="g-recaptcha-response"
+                )
+
+                recaptcha_id = recaptcha_textarea["id"]
+                # captcha_textarea = real_form.find_element(By.XPATH, './/textarea[@name="g-recaptcha-response"]')
+
+                # self.driver.execute_script(
+                #     "arguments[0].value = arguments[1];",
+                #     captcha_textarea,
+                #     form_token
+                # )
+
+                write_token_js = f'document.getElementById("{recaptcha_id}").innerHTML="{form_token}";'
 
                 self.driver.execute_script(write_token_js)
 
@@ -225,7 +262,7 @@ class BuyOrderPlacer:
         for each in auth_token_list:
             form_data = {
                 "authenticity_token": each,
-                "price": f"{order_buy_amont:,}",
+                "price": order_buy_amont,
                 "g-recaptcha-response": form_token,
             }
             send_post = self.session.post(
