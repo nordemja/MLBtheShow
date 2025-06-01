@@ -42,6 +42,7 @@ class CaptchaSolver:
                 f"&googlekey={self.data_sitekey}"
                 f"&pageurl={player['URL']}"
                 f"&json=1&invisible=1"
+                f"&enterprise=1"
             )
             response = requests.get(url, timeout=10)
             request_id = int(response.json().get("request"))
